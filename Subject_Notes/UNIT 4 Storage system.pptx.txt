@@ -1,0 +1,382 @@
+
+
+----- Page 1 -----
+UNIT 4
+Storage system
+
+
+----- Page 2 -----
+* Databases are stored in file formats, which contain records.
+
+¢ At physical level, the actual data is stored in electromagnetic format
+on some device.
+¢ These storage devices can be broadly categorized into three types
+
+Ayoedeo yBiH
+High Speed
+
+
+----- Page 3 -----
+* Primary Storage -The memory storage that is directly accessible
+to the CPU comes under this category.
+
+* CPU's internal memory (registers), fast memory (cache), and main
+memory (RAM) are directly accessible to the CPU, as they are all
+placed on the motherboard or CPU chipset.
+
++ This storage is typically very small, ultra-fast, and volatile.
+
+* Primary storage requires continuous power supply in order to
+maintain its state. In case of a power failure, all its data is lost.
+
+
+
+----- Page 4 -----
+* Secondary Storage — Secondary storage devices are used to store data for future
+use or as backup.
+
+* Secondary storage includes memory devices that are not a part of the CPU chipset
+or motherboard, for example, magnetic disks, optical disks (DVD, CD, etc.), hard
+disks, flash drives, and magnetic tapes.
+
+* Tertiary Storage — Tertiary storage is used to store huge volumes of data.
+
+* Since such storage devices are external to the computer system, they are the
+slowest in speed.
+
++ These storage devices are mostly used to take the back up of an entire system.
+
+* Optical disks and magnetic tapes are widely used as tertiary storage.
+
+
+----- Page 5 -----
+* Magnetic Di
+
+¢ Hard disk drives are the most common secondary storage devices in present
+computer systems.
+
+* These are called magnetic disks because they use the concept of magnetization to
+store information.
+
++ Hard disks consist of metal disks coated with magnetizable material.
+* These disks are placed vertically on a spindle
+
++ A read/write head moves in between the disks and is used to magnetize or
+de-magnetize the spot under it.
+
++ A magnetized spot can be recognized as 0 (zero) or 1 (one).
++ Ahard disk plate has many concentric circles on it, called tracks.
++ Every track is further divided into sectors.
+
+
+----- Page 6 -----
+Disk drive components
+
+
+
+----- Page 7 -----
+Figure 3: Sind and pit
+
+Figure 2-4: Actuator arm assembly
+
+
+----- Page 8 -----
+s
+i
+&
+
+FFigure|2-5: Disk structure: sectors, tracks, and cylinders
+
+
+----- Page 9 -----
+Redundant Array of Independent Disks
+Redundant Array of Inexpensive Disks
+
++ RAID is a technique that makes use of a combination of multiple disks instead of using a single disk for
+increased performance, data redundancy, or both.
+
+Why Data Redundancy?
++ Data redundancy, although taking up extra space, adds to disk reliability.
+
+* This means, that in case of disk failure, if the same data is also backed up onto another disk, we can retrieve
+the data and go on with the operation.
+
+Key Evaluation Points for a RAID System
+
+How many disk faults can the system tolerate?
+
+Availability: What fraction of the total session time is a system in uptime mode, i.e. how available is the
+system for actual use?
+
+Performance: How good is the response time? How high is the throughput (rate of processing
+work)? (Read/write)
+
+Capacity: Given a set of N disks each with B blocks, how much useful capacity is available to the user?
+
+
+----- Page 10 -----
+Different RAID Levels
+
+RAID-0 (Stripping)
++ Data is distributed as blocks and blocks are distributed among disks
+Advantages
+
+RAIDO Itis easy to implement.
+
+striping It utilizes the storage capacity in a better way.
+
+Disadvantages
+
+A single drive loss can result in the complete failure of the
+system.
+
+block 6 Not a good choice for a critical system.
+
+block 2
+| block 4
+
+block 8
+rive 2
+
+
+
+----- Page 11 -----
+RAID-1 (Mirroring)
+
+* More than one copy of each block is stored in a separate disk.
++ Thus, every block has two (or more) copies, lying on different disks.
+
+RAID 1
+
+Mirrored Data to both Drives
+
+RAID 1
+
+Disko | Disk1 | Disk2 | Disk3
+
+° 0 |
+
+2
+4
+6
+
+ala] nN
+sfalwlo
+sfulwala
+
+The above figure shows a RAID-1 system with mirroring level 2.
+
+RAID 0 was unable to tolerate any disk failure. But RAID 1 is capable of
+reliability.
+
+Advantages
+
++It covers complete redundancy.
+
++It can increase data security and speed.
+
+Disadvantages
+
+«It is highly expensive.
+
+*Storage capacity is less.
+
+
+----- Page 12 -----
+Nested Raid-RAID 01 (RAID 0+1)
+
+RAID 0+1
+—_
+
+ae t} wi °
+
+Disk 0 Disk 1 S 4 Disk 3
+
+
+
+----- Page 13 -----
+Nested Raid-RAID 10 (RAID 1+0)
+
+RAID 1+0
+RAID O
+CT ”~—CSYT
+asin % RAID 1
+x5
+
+=
+
+Las _] (As _
+
+Lar] [as]
+
+Disk oO Disk 1 Disk 2 Disk 3
+
+Nested RAID are used in real time applications
+
+
+----- Page 14 -----
+* RAID 3(Byte-Level Stripping with Dedicated Parity)
+RAID 3
+
+Disk O Disk1 Disk 2 Disk 3
+15 16 17 P(15, 16, 17)
+18 19 20 P(18, 19, 20)
+21 22 23 P(21, 22, 23)
+24 25 26 P(24, 25, 26)
+
+«It consists of byte-level striping with dedicated parity striping.
+“At this level, we store parity information in a disc section and write to a dedicated parity drive.
+“Whenever failure of the drive occurs, it helps in accessing the parity drive, through which we can
+
+reconstruct the data.
+*Here Disk 3 contains the Parity bits for Disk 0, Disk 1, and Disk 2. If data loss occurs, we can
+
+construct it with Disk 3.
+
+
+----- Page 15 -----
+* Advantages
+
+* Data can be transferred in bulk.
+
+* Data can be accessed in parallel.
+
+* Disadvantages
+
+* It requires an additional drive for parity.
+
+* In the case of small-size files, it performs slowly.
+* failure of 2 disk data cant be retrieved
+
+* Parity disk Failure
+
+* Bottle neck because when we write new data or update data, the parity
+value changes.so parity value is written for every write or update operation
+-Parity disk overhead
+
+
+----- Page 16 -----
+¢5. RAID-4 (Block-Level Stripping with Dedicated Parity)
+* Instead of duplicating data, this adopts a parity-based approach.
+
+RAID 4
+
+*In the figure, we can observe one column (disk) dedicated to
+parity.
+
+*Parity is calculated using a simple XOR function.
+
+«if the data bits are 0,0,0,1 the parity bit is XOR(0,0,0,1) = 1.
+
+«lf the data bits are 0,1,1,0 the parity bit is XOR(0,1,1,0) = 0.
+
+*A simple approach is that an even number of ones results in parity
+0, and an odd number of ones results in parity 1.
+
+Advantages
+
+It helps in reconstructing the data if at most one data is lost.
+
+Parity | Disadvantages
+
+«It can’t help in reconstructing when more than one data is lost.
+| “Parity disk Failure
+
+Disko | Disk1 | Disk2 | Disk3 | Disk4
+° 1 2 3 Po
+4 5 6 7 PI
+8 9 10 u P2
+12 3 4 15 P3
+ci c2 Cc C4
+0 t) () 1 1
+te) 1 1 t) te)
+
+| *Bottleneck because when we write new data or update data,
+the parity value changes. so parity value is written for every write
+
+or update operation -Parity disk overhead
+
+
+----- Page 17 -----
+* RAID-5 (Block-Level Stripping with Distributed Parity)
+
+Disko | Diski | Disk2 | Disk3 | Disk 4
+° 1 2 | 3 PO
+5 6 7 | PF 4
+10 1 p2 | 8 9
+15 P3 2 | B 4
+P4 16 7 | 19
+
+This is a slight modification of the RAID-4 system where
+the only difference is that the parity rotates among the
+drives.
+
+Advantages
+*Data can be reconstructed using parity bits.
+
+«It makes the performance better.
+
+Disadvantages
+
+«Its technology is complex.
+
+If both discs get damaged, data will be lost forever.
+
+
+----- Page 18 -----
+*RAID-6 (Block-Level Stripping with two Parity Bits)
+*Raid-6 helps when there is more than one disk failure.
+
++A pair of independent parities are generated and stored on multiple
+
+disks at this level.
+
+* Ideally, you need four disk drives for this level.
+
+RAI
+
+D6
+
+Disk! | Disk2 | Disk3 | Disk4
+Al BI P(B1) P(BI)
+A2 P(B2) P(B2) B2
+
+P(B3) P(B3) AB B3
+
+P(B4) AG a P(B4)
+
+Advantages
+
+“Very high data Accessibility.
+Fast read data transactions.
+Disadvantages
+
+“Due to double parity, it has slow write data transactions.
+“Extra space is required.
+
+
+----- Page 19 -----
+Advantages of RAID
+
+Data redundancy: By keeping numerous copies of the data on many disks, RAID can shield data from disk
+failures.
+
+Performance enhancement: RAID can enhance performance by distributing data over several drives, enabling
+the simultaneous execution of several read/write operations.
+
+Scalal
+
+: RAID is scalable, therefore by adding more disks to the array, the storage capacity may be expanded
+
+Vers: RAID is applicable to a wide range of devices, such as workstations, servers, and personal PCs
+
+Disadvantages of RAID
+
+Cost: RAID implementation can be costly, particularly for arrays with large capacities.
+Complexity: The setup and management of RAID might be challenging.
+
+Decreased performance: The parity calculations necessary for some RAID configurations, including RAID 5 and
+RAID 6, may result in a decrease in speed.
+
+Single point of failure: RAID is not a comprehensive backup solution, while offering data redundancy. The
+array’s whole contents could be lost if the RAID controller malfunctions.
