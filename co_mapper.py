@@ -1,5 +1,6 @@
 from sentence_transformers import SentenceTransformer, util
 import json
+import re
 
 def load_questions(filepath):
     '''Give filepath as the argument in the function
@@ -10,7 +11,7 @@ def load_questions(filepath):
             questions=data.get('questions',[])
     elif filepath.endswith('.txt'):
         with open(filepath,'r')as f:
-            questions=[line.strip() for line in f if line.strip()]
+            questions = [re.sub(r'^\d+\.\s*', '', line.strip()) for line in f if line.strip()]
     else:
         raise ValueError("Unsupported file formats. Please use .json or .txt formats only")
     return questions
