@@ -1,106 +1,114 @@
-# mcq_core.py
 import os
-import pdfplumber
 import docx
+import pdfplumber
 from fpdf import FPDF
-
-from langchain_core.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 
-# ------------ LLM SETUP ------------
+# ---------------- CONFIG ---------------- #
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise ValueError(
-        "GROQ_API_KEY environment variable is not set. "
-        "Set it before running the app or main script."
-    )
+    raise ValueError("GROQ_API_KEY is not set. Please export it first.")
 
 llm = ChatGroq(
     api_key=GROQ_API_KEY,
     model="llama-3.3-70b-versatile",
-    temperature=0.0,
+    temperature=0.2
 )
 
-mcq_prompt = PromptTemplate(
-    input_variables=["context", "num_questions"],
-    template="""
-You are an AI assistant helping the user generate multiple-choice questions (MCQs) from the text below:
+# -------------- PROMPTS ---------------- #
 
-Text:
+co_controlled_prompt = PromptTemplate(
+    input_variables=["context", "co_description", "num_questions"],
+    template="""
+You are an expert exam-question designer.
+
+Generate {num_questions} HIGH-QUALITY MCQs strictly aligned to the following CO:
+
+CO Description:
+"{co_description}"
+
+The questions MUST:
+- Test ONLY this CO
+- Be unique and non-repetitive
+- Cover real exam concepts
+- Use Bloom levels: Apply, Analyze, or Evaluate
+- Use the text below ONLY as reference material
+
+Reference Text:
 {context}
 
-Generate {num_questions} MCQs. Each should include:
-- A clear question
-- Four answer options labeled A, B, C, and D
-- The correct answer clearly indicated at the end
+Format each question as:
 
-Format:
 ## MCQ
-Question: [question]
-A) [option A]
-B) [option B]
-C) [option C]
-D) [option D]
-Correct Answer: [correct option]
+Question: <question>
+A) <option 1>
+B) <option 2>
+C) <option 3>
+D) <option 4>
+Correct Answer: <correct option letter>
 """
 )
 
-mcq_chain = mcq_prompt | llm  # LCEL chain
+co_chain = co_controlled_prompt | llm
 
-# ------------ TEXT EXTRACTION ------------
+# ------------ TEXT EXTRACTION ------------ #
 
-def extract_text(file_path: str) -> str:
-    ext = file_path.rsplit('.', 1)[-1].lower()
+def extract_text(file_path):
+    ext = file_path.lower().split(".")[-1]
 
     if ext == "pdf":
         text = ""
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
+                content = page.extract_text()
+                if content:
+                    text += content + "\n"
         return text
 
     elif ext == "docx":
         doc = docx.Document(file_path)
-        return " ".join(para.text for para in doc.paragraphs)
+        return "\n".join(para.text for para in doc.paragraphs)
 
     elif ext == "txt":
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
+        return open(file_path, "r", encoding="utf-8").read()
 
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-# ------------ MCQ GENERATION ------------
+# ---------- CO-AWARE MCQ GENERATION ---------- #
 
-def generate_mcqs_from_text(text: str, num_questions: int) -> str:
-    response = mcq_chain.invoke({
+def generate_mcqs_for_co(text, co_description, num_questions):
+    response = co_chain.invoke({
         "context": text,
-        "num_questions": num_questions,
+        "co_description": co_description,
+        "num_questions": num_questions
     })
 
-    if hasattr(response, "content"):
-        return response.content.strip()
-    return str(response).strip()
+    return response.content.strip() if hasattr(response, "content") else str(response)
 
-def generate_mcqs_from_file(file_path: str, num_questions: int) -> str:
-    text = extract_text(file_path)
-    if not text or not text.strip():
-        raise ValueError("No text extracted from the file.")
-    return generate_mcqs_from_text(text, num_questions)
+def generate_balanced_mcqs(text, co_list, total_questions):
+    per_co = total_questions // len(co_list)
 
-# ------------ SAVE HELPERS ------------
+    all_mcqs = ""
 
-def save_mcqs_txt(mcqs: str, folder: str, filename: str) -> str:
+    for co in co_list:
+        mcqs = generate_mcqs_for_co(text, co, per_co)
+        all_mcqs += mcqs + "\n\n"
+
+    return all_mcqs.strip()
+
+# ---------- SAVE HELPERS ---------- #
+
+def save_mcqs_txt(mcqs, folder, filename):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, filename)
     with open(path, "w", encoding="utf-8") as f:
         f.write(mcqs)
     return path
 
-def save_mcqs_pdf(mcqs: str, folder: str, filename: str) -> str:
+def save_mcqs_pdf(mcqs, folder, filename):
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
     pdf.add_page()
