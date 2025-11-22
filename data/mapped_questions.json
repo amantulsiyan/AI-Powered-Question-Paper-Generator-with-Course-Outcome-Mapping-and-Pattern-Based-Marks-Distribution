@@ -1,0 +1,72 @@
+[
+    {
+        "question": "What is recursion in programming?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.4434
+    },
+    {
+        "question": "What is the base case in a recursive function?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.2746
+    },
+    {
+        "question": "What is the main advantage of using recursion?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.3125
+    },
+    {
+        "question": "What is a queue in data structures?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.3132
+    },
+    {
+        "question": "What is the difference between a queue and a priority queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO3",
+        "description": "Analyze and implement application based real time solutions using Non-linear Datastructures.",
+        "similarity": 0.0832
+    },
+    {
+        "question": "What is the purpose of the enqueue operation in a queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.0357
+    },
+    {
+        "question": "What is the purpose of the dequeue operation in a queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.0235
+    },
+    {
+        "question": "What is a circular queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.0966
+    },
+    {
+        "question": "What is a double-ended queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.1049
+    },
+    {
+        "question": "What is the main advantage of using a double-ended queue?",
+        "bloom_level": "Remember",
+        "mapped_to": "CO2",
+        "description": "Apply the concepts of Linear Data Structures and Recursive techniques to handle problems inreal time applications through programming.",
+        "similarity": 0.061
+    }
+]
