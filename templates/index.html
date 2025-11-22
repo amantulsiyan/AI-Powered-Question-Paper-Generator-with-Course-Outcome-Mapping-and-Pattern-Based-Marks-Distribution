@@ -5,19 +5,40 @@
     <title>MCQ Generator</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
+
 <body class="bg-light">
     <div class="container mt-5">
-        <h2 class="text-center mb-4">Upload Document to Generate MCQs</h2>
+        <h2 class="text-center mb-4">AI-Powered MCQ Generator</h2>
+
         <form method="POST" action="/generate" enctype="multipart/form-data" class="border p-4 bg-white shadow-sm">
+
+            <!-- File Upload -->
             <div class="mb-3">
-                <label for="file" class="form-label">Choose a file (PDF, DOCX, or TXT):</label>
+                <label for="file" class="form-label">Upload File (PDF, DOCX, or TXT):</label>
                 <input class="form-control" type="file" name="file" id="file" required>
             </div>
+
+            <!-- Number of Questions -->
             <div class="mb-3">
-                <label for="num_questions" class="form-label">Number of Questions:</label>
-                <input class="form-control" type="number" name="num_questions" id="num_questions" min="1" value="5" required>
+                <label for="num_questions" class="form-label">Total Number of MCQs:</label>
+                <input class="form-control" type="number" name="num_questions" id="num_questions" min="1" value="10" required>
             </div>
-            <button class="btn btn-primary" type="submit">Generate MCQs</button>
+
+            <!-- CO Input -->
+            <div class="mb-3">
+                <label for="co_descriptions" class="form-label">
+                    Enter Course Outcomes (COs):  
+                    <span class="text-muted">(one CO per line)</span>
+                </label>
+                <textarea class="form-control" name="co_descriptions" id="co_descriptions" rows="6" placeholder="Example:
+CO1: Apply Linear Algebra concepts to ML.
+CO2: Use IT tools for ML tasks.
+CO3: Analyze ML algorithms using math foundations." required></textarea>
+            </div>
+
+            <!-- Submit -->
+            <button class="btn btn-primary w-100" type="submit">Generate MCQs</button>
+
         </form>
     </div>
 </body>
