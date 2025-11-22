@@ -19,22 +19,54 @@ def load_questions(filepath):
     return questions
 
 
+import re
+
 def detect_bloom_level(question):
     q = question.lower()
-    if any(word in q for word in ["define", "list", "what is"]):
-        return "Remember"
-    elif any(word in q for word in ["explain", "describe", "summarize"]):
-        return "Understand"
-    elif any(word in q for word in ["apply", "use", "determine", "solve"]):
-        return "Apply"
-    elif any(word in q for word in ["analyze", "compare", "differentiate"]):
-        return "Analyze"
-    elif any(word in q for word in ["evaluate", "justify", "criticize"]):
-        return "Evaluate"
-    elif any(word in q for word in ["create", "design", "develop"]):
-        return "Create"
-    else:
-        return "Unclassified"
+
+    # Extract the first verb in the question (strong Bloom indicator)
+    tokens = re.findall(r'\b[a-z]+\b', q)
+    first_word = tokens[0] if tokens else ""
+
+    # Bloom keyword dictionaries
+    bloom_keywords = {
+        "Remember": [
+            "define", "list", "state", "identify", "name", "recall",
+            "what", "when", "where"
+        ],
+        "Understand": [
+            "explain", "describe", "summarize", "interpret", "classify",
+            "differentiate", "discuss", "illustrate"
+        ],
+        "Apply": [
+            "apply", "use", "determine", "solve", "compute",
+            "demonstrate", "execute", "implement", "calculate"
+        ],
+        "Analyze": [
+            "analyze", "compare", "contrast", "differentiate",
+            "distinguish", "examine", "investigate"
+        ],
+        "Evaluate": [
+            "evaluate", "justify", "critique", "argue", "assess",
+            "recommend", "validate"
+        ],
+        "Create": [
+            "create", "design", "develop", "construct", "formulate",
+            "compose", "invent", "propose"
+        ]
+    }
+
+    # Check first word (most reliable)
+    for level, keywords in bloom_keywords.items():
+        if first_word in keywords:
+            return level
+
+    # Fallback: check anywhere in the question
+    for level, keywords in bloom_keywords.items():
+        if any(re.search(rf'\b{word}\b', q) for word in keywords):
+            return level
+
+    return "Unclassified"
 
 def co_question_mapper(filepath):
     model=SentenceTransformer('all-MiniLM-L6-v2')
