@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment folders
+venv/
+env/
+
+# Uploaded files
+uploads/
+
+# Generated output files
+results/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+
+# Environment variables / secrets
+*.env
+.env*
