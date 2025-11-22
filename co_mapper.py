@@ -1,20 +1,23 @@
 from sentence_transformers import SentenceTransformer, util
-import json
 import re
+import json
 
 def load_questions(filepath):
-    '''Give filepath as the argument in the function
-       Accepted formats .txt and.json '''
-    if filepath.endswith('.json'):
-        with open(filepath,'r')as f:
-            data=json.load(f)
-            questions=data.get('questions',[])
-    elif filepath.endswith('.txt'):
-        with open(filepath,'r')as f:
-            questions = [re.sub(r'^\d+\.\s*', '', line.strip()) for line in f if line.strip()]
-    else:
-        raise ValueError("Unsupported file formats. Please use .json or .txt formats only")
+    questions = []
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Find ALL question lines like: "Question: something"
+    matches = re.findall(r"Question:\s*(.*)", content)
+
+    for q in matches:
+        # Strip numbering like "1. something" (just in case)
+        clean_q = re.sub(r'^\d+\.\s*', '', q).strip()
+        questions.append(clean_q)
+
     return questions
+
 
 def detect_bloom_level(question):
     q = question.lower()
