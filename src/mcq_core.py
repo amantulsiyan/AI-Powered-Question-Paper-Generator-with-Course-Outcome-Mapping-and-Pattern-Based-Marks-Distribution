@@ -24,22 +24,27 @@ co_controlled_prompt = PromptTemplate(
     template="""
 You are an expert exam-question designer.
 
-Generate {num_questions} HIGH-QUALITY MCQs strictly aligned to the following CO:
+Generate {num_questions} HIGH-QUALITY MCQs that explicitly assess the following Course Outcome (CO):
 
 CO Description:
 "{co_description}"
 
-The questions MUST:
-- Test ONLY this CO
-- Be unique and non-repetitive
-- Cover real exam concepts
-- Use Bloom levels: Apply, Analyze, or Evaluate
-- Use the text below ONLY as reference material
+Your MCQs MUST:
+- clearly reflect concepts and terminology mentioned in the CO
+- include keywords and phrasing inspired directly from the CO language
+- stay strictly within the scope of the CO (do NOT generate generic or broad questions)
+- use Bloom levels: Apply, Analyze, or Evaluate
+- use the reference text ONLY as supporting material
+
+To ensure proper CO alignment:
+- each question MUST contain at least some terminology related to the CO description
+- avoid generic DFS/BFS/stack/queue/tree/etc. unless relevant to the CO text
+- avoid generic textbook questions that do not reflect the CO meaning
 
 Reference Text:
 {context}
 
-Format each question as:
+Format each MCQ EXACTLY like this:
 
 ## MCQ
 Question: <question>

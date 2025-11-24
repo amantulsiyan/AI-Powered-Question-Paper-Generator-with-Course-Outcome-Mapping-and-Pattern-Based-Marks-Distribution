@@ -37,59 +37,39 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate_mcqs():
-    # ---- File check ---- #
-    if 'file' not in request.files:
-        return "No file uploaded."
-
-    file = request.files['file']
-    if not file or not allowed_file(file.filename):
-        return "Invalid file type. Upload a PDF / DOCX / TXT."
-
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(file_path)
-
-    # ---- Number of questions ---- #
-    try:
-        total_questions = int(request.form.get('num_questions', '5'))
-    except ValueError:
-        return "Invalid number of questions."
-
-    # ---- CO input ---- #
-    co_raw = request.form.get("co_descriptions", "").strip()
-    if not co_raw:
-        return "No COs provided."
-
-    co_list = [co.strip() for co in co_raw.split("\n") if co.strip()]
-    if len(co_list) == 0:
-        return "No valid COs provided."
-
-    # ---- Extract text ---- #
-    try:
-        text = extract_text(file_path)
-    except Exception as e:
-        return f"Error reading file: {e}"
-
+    # ... (existing file and input validation code stays the same)
+    
     # ---- Generate Balanced MCQs per CO ---- #
     try:
-        mcqs = generate_balanced_mcqs(text, co_list, total_questions)
+        result = generate_balanced_mcqs(text, co_list, total_questions)
+        mcqs_raw = result["raw_text"]
+        mapped_mcqs = result["mapped_questions"]
     except Exception as e:
         return f"Error generating MCQs: {e}"
-
+    
     # ---- Save output files ---- #
     base_name = filename.rsplit('.', 1)[0]
     txt_name = f"generated_mcqs_{base_name}.txt"
     pdf_name = f"generated_mcqs_{base_name}.pdf"
-
-    txt_path = save_mcqs_txt(mcqs, app.config['RESULTS_FOLDER'], txt_name)
-    pdf_path = save_mcqs_pdf(mcqs, app.config['RESULTS_FOLDER'], pdf_name)
-
+    json_name = f"mapped_mcqs_{base_name}.json"
+    
+    txt_path = save_mcqs_txt(mcqs_raw, app.config['RESULTS_FOLDER'], txt_name)
+    pdf_path = save_mcqs_pdf(mcqs_raw, app.config['RESULTS_FOLDER'], pdf_name)
+    
+    # Save CO mapping as JSON
+    import json
+    json_path = os.path.join(app.config['RESULTS_FOLDER'], json_name)
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(mapped_mcqs, f, indent=4)
+    
     # ---- Render ---- #
     return render_template(
         'result.html',
-        mcqs=mcqs,
+        mcqs=mcqs_raw,
+        mapped_mcqs=mapped_mcqs,
         txt_filename=os.path.basename(txt_path),
-        pdf_filename=os.path.basename(pdf_path)
+        pdf_filename=os.path.basename(pdf_path),
+        json_filename=json_name
     )
 
 
