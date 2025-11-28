@@ -3,15 +3,20 @@ import re
 import docx
 import pdfplumber
 from fpdf import FPDF
-from langchain.prompts import PromptTemplate
+
+from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
+
 from sentence_transformers import SentenceTransformer, util
 
-# ---------------- CONFIG ---------------- #
+
+# ===================================================================
+#                      API & LLM INITIALIZATION
+# ===================================================================
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY is not set. Please export it first.")
+    raise ValueError("❌ GROQ_API_KEY missing! Please set it first.")
 
 llm = ChatGroq(
     api_key=GROQ_API_KEY,
@@ -19,281 +24,254 @@ llm = ChatGroq(
     temperature=0.2
 )
 
-# -------------- PROMPTS ---------------- #
+# ===================================================================
+#                          PROMPT TEMPLATE
+# ===================================================================
 
-co_controlled_prompt = PromptTemplate(
+co_prompt = PromptTemplate(
     input_variables=["context", "co_description", "num_questions"],
     template="""
 You are an expert exam-question designer.
 
-Generate {num_questions} HIGH-QUALITY MCQs that explicitly assess the following Course Outcome (CO):
+Generate exactly {num_questions} MCQs for the following Course Outcome (CO):
 
 CO Description:
 "{co_description}"
 
-Your MCQs MUST:
-- clearly reflect concepts and terminology mentioned in the CO
-- include keywords and phrasing inspired directly from the CO language
-- stay strictly within the scope of the CO (do NOT generate generic or broad questions)
-- use Bloom levels: Apply, Analyze, or Evaluate
-- use the reference text ONLY as supporting material
-
-To ensure proper CO alignment:
-- each question MUST contain at least some terminology related to the CO description
-- avoid generic questions unless relevant to the CO text
-- focus on the specific learning objectives stated in the CO
-
-Reference Text:
-{context}
-
-Format each MCQ EXACTLY like this:
+STRICT RULES:
+- Use Bloom levels ONLY: Apply, Analyze, Evaluate
+- Questions must clearly reflect the CO’s terminology
+- Do NOT generate theoretical/general questions
+- Stick to the reference text context
+- Each MCQ MUST follow EXACT format:
 
 ## MCQ
-Question: <question>
-A) <option 1>
-B) <option 2>
-C) <option 3>
-D) <option 4>
-Correct Answer: <correct option letter>
+Question: <question statement>
+A) <option>
+B) <option>
+C) <option>
+D) <option>
+Correct Answer: <A/B/C/D>
+
+REFERENCE TEXT:
+{context}
 """
 )
 
-co_chain = co_controlled_prompt | llm
+co_chain = co_prompt | llm
 
-# ------------ TEXT EXTRACTION ------------ #
+# ===================================================================
+#                         TEXT EXTRACTION
+# ===================================================================
 
 def extract_text(file_path):
-    """Extract text from PDF, DOCX, or TXT files"""
     ext = file_path.lower().split(".")[-1]
 
     if ext == "pdf":
         text = ""
         with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                content = page.extract_text()
-                if content:
-                    text += content + "\n"
+            for p in pdf.pages:
+                c = p.extract_text()
+                if c:
+                    text += c + "\n"
         return text
 
     elif ext == "docx":
         doc = docx.Document(file_path)
-        return "\n".join(para.text for para in doc.paragraphs)
+        return "\n".join(p.text for p in doc.paragraphs)
 
     elif ext == "txt":
         return open(file_path, "r", encoding="utf-8").read()
 
     else:
-        raise ValueError(f"Unsupported file type: {ext}")
+        raise ValueError("Unsupported file format.")
 
-# ---------- BLOOM LEVEL DETECTION ---------- #
+
+# ===================================================================
+#                    IMPROVED BLOOM LEVEL DETECTION
+# ===================================================================
 
 def detect_bloom_level(question):
-    """Detect Bloom's taxonomy level based on question verbs"""
     q = question.lower()
+
+    # Extract first verb — strongest Bloom indicator
     tokens = re.findall(r'\b[a-z]+\b', q)
     first_word = tokens[0] if tokens else ""
-    
+
     bloom_keywords = {
-        "Remember": [
-            "define", "list", "state", "identify", "name", "recall",
-            "what", "when", "where", "who", "label", "match", "memorize"
-        ],
-        "Understand": [
-            "explain", "describe", "summarize", "interpret", "classify",
-            "differentiate", "discuss", "illustrate", "paraphrase", "translate"
-        ],
-        "Apply": [
-            "apply", "use", "determine", "solve", "compute",
-            "demonstrate", "execute", "implement", "calculate", "show"
-        ],
-        "Analyze": [
-            "analyze", "compare", "contrast", "differentiate",
-            "distinguish", "examine", "investigate", "categorize", "break down"
-        ],
-        "Evaluate": [
-            "evaluate", "justify", "critique", "argue", "assess",
-            "recommend", "validate", "judge", "defend", "support"
-        ],
-        "Create": [
-            "create", "design", "develop", "construct", "formulate",
-            "compose", "invent", "propose", "plan", "generate"
-        ]
+        "Remember":  ["define", "recall", "list", "what", "when"],
+        "Understand": ["explain", "describe", "summarize", "interpret"],
+        "Apply": ["apply", "use", "solve", "calculate", "determine"],
+        "Analyze": ["analyze", "compare", "contrast", "distinguish"],
+        "Evaluate": ["evaluate", "justify", "argue", "validate", "assess"],
+        "Create": ["design", "create", "develop", "propose"]
     }
-    
-    # Check first word (most reliable indicator)
-    for level, keywords in bloom_keywords.items():
-        if first_word in keywords:
+
+    # 1️⃣ Check first word
+    for level, words in bloom_keywords.items():
+        if first_word in words:
             return level
-    
-    # Fallback: check anywhere in the question
-    for level, keywords in bloom_keywords.items():
-        if any(re.search(rf'\b{word}\b', q) for word in keywords):
+
+    # 2️⃣ Check anywhere
+    for level, words in bloom_keywords.items():
+        if any(w in q for w in words):
             return level
-    
+
+    # 3️⃣ Advanced fallback using heuristic detection
+    if "why" in q or "reason" in q:
+        return "Evaluate"
+    if "how" in q:
+        return "Analyze"
+
     return "Unclassified"
 
-# ---------- CO MAPPING ---------- #
 
-def parse_and_map_mcqs(raw_mcqs, co_list):
-    """
-    Parse generated MCQs and map them to COs using semantic similarity.
-    Returns a list of dictionaries containing question details and CO mappings.
-    """
-    # Initialize sentence transformer model
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+# ===================================================================
+#                    MCQ PARSER (VERY STRONG)
+# ===================================================================
+
+def parse_and_map_mcqs(raw_text, co_list):
+    model = SentenceTransformer("all-MiniLM-L6-v2")
     co_embeddings = model.encode(co_list, convert_to_tensor=True)
-    
-    # Parse MCQs from raw text
-    mcq_blocks = raw_mcqs.split("## MCQ")
-    mapped_mcqs = []
-    
+
+    mcq_blocks = raw_text.split("## MCQ")
+    results = []
+
     for block in mcq_blocks:
         if not block.strip():
             continue
-            
-        # Extract question text
-        question_match = re.search(r"Question:\s*(.*?)(?:\n|$)", block, re.IGNORECASE)
-        if not question_match:
+
+        # Extract question
+        q_match = re.search(r"Question:\s*(.*)", block)
+        if not q_match:
             continue
-            
-        question_text = question_match.group(1).strip()
-        
-        # Skip if question is too short
-        if len(question_text) < 10:
-            continue
-        
-        # Encode question and find best CO match using semantic similarity
-        q_embedding = model.encode(question_text, convert_to_tensor=True)
-        similarities = util.cos_sim(q_embedding, co_embeddings)[0]
-        best_index = int(similarities.argmax())
-        best_score = float(similarities[best_index])
-        
-        # Detect Bloom level
-        bloom = detect_bloom_level(question_text)
-        
-        # Extract options and correct answer
+        question = q_match.group(1).strip()
+
+        # Extract options
         options = {}
-        for opt in ['A', 'B', 'C', 'D']:
-            opt_match = re.search(rf"{opt}\)\s*(.*?)(?:\n|$)", block)
-            if opt_match:
-                options[opt] = opt_match.group(1).strip()
-        
-        correct_match = re.search(r"Correct Answer:\s*([A-D])", block, re.IGNORECASE)
-        correct_answer = correct_match.group(1).upper() if correct_match else "Unknown"
-        
-        mapped_mcqs.append({
+        for opt in ["A", "B", "C", "D"]:
+            m = re.search(rf"{opt}\)\s*(.*)", block)
+            if m:
+                options[opt] = m.group(1).strip()
+
+        # Extract correct answer
+        c_match = re.search(r"Correct Answer:\s*([A-D])", block)
+        correct = c_match.group(1).upper() if c_match else "Unknown"
+
+        # Perform mapping using semantic similarity
+        q_embed = model.encode(question, convert_to_tensor=True)
+        sims = util.cos_sim(q_embed, co_embeddings)[0]
+        best = int(sims.argmax())
+
+        bloom = detect_bloom_level(question)
+
+        results.append({
             "question_block": block.strip(),
-            "question_text": question_text,
+            "question_text": question,
             "options": options,
-            "correct_answer": correct_answer,
-            "mapped_co": f"CO{best_index + 1}",
-            "co_description": co_list[best_index],
-            "similarity_score": round(best_score, 4),
+            "correct_answer": correct,
+            "mapped_co": f"CO{best+1}",
+            "co_description": co_list[best],
+            "similarity_score": float(sims[best]),
             "bloom_level": bloom
         })
-    
-    return mapped_mcqs
 
-# ---------- CO-AWARE MCQ GENERATION ---------- #
+    return results
 
-def generate_mcqs_for_co(text, co_description, num_questions):
-    """Generate MCQs for a specific Course Outcome"""
+
+# ===================================================================
+#                MCQ GENERATION WITH RETRY SYSTEM
+# ===================================================================
+
+def generate_mcqs_for_co(text, co_description, n):
     response = co_chain.invoke({
         "context": text,
         "co_description": co_description,
-        "num_questions": num_questions
+        "num_questions": n
     })
 
-    return response.content.strip() if hasattr(response, "content") else str(response)
+    try:
+        return response.content
+    except:
+        return str(response)
 
-def generate_balanced_mcqs(text, co_list, total_questions):
-    """
-    Generate MCQs balanced across all COs and map them using semantic similarity.
-    Returns a dictionary with raw text and mapped questions.
-    """
-    per_co = total_questions // len(co_list)
-    
-    all_mcqs_raw = ""
-    
-    # Generate MCQs for each CO
+
+# ===================================================================
+#    NEW: PERFECTLY BALANCED, EXACT COUNT, RETRY-BASED GENERATION
+# ===================================================================
+
+def generate_balanced_mcqs(text, co_list, total):
+    n = len(co_list)
+
+    base = total // n
+    extra = total % n
+
+    all_raw = ""
+
+    # --------------- FIRST GENERATION ---------------
     for i, co in enumerate(co_list):
-        print(f"Generating {per_co} MCQs for CO{i+1}...")
-        mcqs = generate_mcqs_for_co(text, co, per_co)
-        all_mcqs_raw += mcqs + "\n\n"
-    
-    # Parse and map MCQs to COs using semantic similarity
-    print("Mapping MCQs to COs using semantic similarity...")
-    mapped_mcqs = parse_and_map_mcqs(all_mcqs_raw, co_list)
-    
+        count = base + (1 if i < extra else 0)
+        print(f"Generating {count} MCQs for CO{i+1}")
+        out = generate_mcqs_for_co(text, co, count)
+        all_raw += out + "\n\n"
+
+    # Parse results
+    parsed = parse_and_map_mcqs(all_raw, co_list)
+    print(f"First pass generated: {len(parsed)} MCQs")
+
+    missing = total - len(parsed)
+
+    # --------------- RETRY LOGIC FOR MISSING MCQs ---------------
+    cycles = 0
+    while missing > 0 and cycles < 3:
+        cycles += 1
+        print(f"Retrying... Missing = {missing}")
+
+        for co in co_list:
+            if missing <= 0:
+                break
+
+            new_raw = generate_mcqs_for_co(text, co, 1)
+            new_mcqs = parse_and_map_mcqs(new_raw, co_list)
+
+            if len(new_mcqs) > 0:
+                parsed.append(new_mcqs[0])
+                missing -= 1
+
+    # Trim if extra
+    parsed = parsed[:total]
+
+    # Final console print
+    print("\nFinal MCQ Count:", len(parsed))
     return {
-        "raw_text": all_mcqs_raw.strip(),
-        "mapped_questions": mapped_mcqs
+        "raw_text": "\n\n".join(m["question_block"] for m in parsed),
+        "mapped_questions": parsed
     }
 
-# ---------- SAVE HELPERS ---------- #
 
-def save_mcqs_txt(mcqs, folder, filename):
-    """Save MCQs to a text file"""
+# ===================================================================
+#                              SAVERS
+# ===================================================================
+
+def save_mcqs_txt(text, folder, fname):
     os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
+    path = os.path.join(folder, fname)
     with open(path, "w", encoding="utf-8") as f:
-        f.write(mcqs)
+        f.write(text)
     return path
 
-def save_mcqs_pdf(mcqs, folder, filename):
-    """Save MCQs to a PDF file"""
+
+def save_mcqs_pdf(text, folder, fname):
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", size=11)
 
-    for mcq in mcqs.split("## MCQ"):
-        if mcq.strip():
-            # Handle special characters that might cause issues
-            try:
-                pdf.multi_cell(0, 10, mcq.strip())
-                pdf.ln(5)
-            except Exception as e:
-                # Fallback for encoding issues
-                clean_text = mcq.strip().encode('latin-1', 'ignore').decode('latin-1')
-                pdf.multi_cell(0, 10, clean_text)
-                pdf.ln(5)
+    for block in text.split("## MCQ"):
+        if block.strip():
+            pdf.multi_cell(0, 10, block.strip())
+            pdf.ln(5)
 
-    path = os.path.join(folder, filename)
+    path = os.path.join(folder, fname)
     pdf.output(path)
-    return path
-
-def save_mapped_mcqs_json(mapped_mcqs, folder, filename):
-    """Save CO-mapped MCQs to a JSON file"""
-    import json
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(mapped_mcqs, f, indent=4, ensure_ascii=False)
-    return path
-
-def save_mapped_mcqs_txt(mapped_mcqs, folder, filename):
-    """Save CO-mapped MCQs to a detailed text file"""
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
-    
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write("="*80 + "\n")
-        f.write("CO-MAPPED MCQs WITH BLOOM LEVELS\n")
-        f.write("="*80 + "\n\n")
-        
-        for i, mcq in enumerate(mapped_mcqs, 1):
-            f.write(f"Question {i}:\n")
-            f.write(f"{mcq['question_text']}\n\n")
-            
-            for opt, text in mcq['options'].items():
-                f.write(f"{opt}) {text}\n")
-            
-            f.write(f"\nCorrect Answer: {mcq['correct_answer']}\n")
-            f.write(f"Mapped to: {mcq['mapped_co']}\n")
-            f.write(f"CO Description: {mcq['co_description']}\n")
-            f.write(f"Similarity Score: {mcq['similarity_score']}\n")
-            f.write(f"Bloom Level: {mcq['bloom_level']}\n")
-            f.write("-"*80 + "\n\n")
-    
     return path

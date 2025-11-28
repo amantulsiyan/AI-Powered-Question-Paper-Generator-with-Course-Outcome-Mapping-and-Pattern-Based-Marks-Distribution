@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generated MCQs</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="quiz-bulb.webp">
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #000000, #0a0a14, #1a1a24, #0a0a14, #000000);
+            background-size: 400% 400%;
+            animation: darkFlow 12s ease-in-out infinite;
+            color: #ffffff;
+        }
+        @keyframes darkFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h2 { font-weight: 700; margin-bottom: 25px; }
+
+        .result-box {
+            background: rgba(10, 10, 18, 0.85);
+            border-radius: 14px;
+            padding: 35px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.55);
+            max-width: 1100px;
+            margin: auto;
+            margin-bottom: 30px;
+        }
+
+        .nice-btn {
+            background: linear-gradient(135deg, #d9d9d9, #f2f2f2);
+            border: none;
+            color: #000;
+            font-weight: 600;
+            padding: 12px 22px;
+            margin: 0 5px;
+            border-radius: 10px;
+            transition: 0.25s ease;
+            text-decoration: none !important;
+        }
+        .nice-btn:hover {
+            background: linear-gradient(135deg, #e3e3e3, #ffffff);
+            box-shadow: 0 0 12px rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .mcq-item {
+            padding: 20px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .question-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #cfd0ff;
+        }
+
+        .reveal-btn {
+            margin-top: 12px;
+            background: linear-gradient(135deg, #d9d9d9, #f7f7f7);
+            border: none;
+            color: #000;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.25s ease;
+        }
+        .reveal-btn:hover { transform: scale(1.03); }
+
+        .answer-box {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid rgba(255,255,255,0.5);
+        }
+
+        /* CO Mapping */
+        .mapped-question {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #6c63ff;
+        }
+        .mapped-question strong { color: #d9d9ff; }
+
+        .bloom-badge, .similarity-score {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .bloom-Remember { background: #ff6b6b; }
+        .bloom-Understand { background: #4ecdc4; }
+        .bloom-Apply { background: #45b7d1; }
+        .bloom-Analyze { background: #f9ca24; color: #000; }
+        .bloom-Evaluate { background: #6c5ce7; }
+        .bloom-Create { background: #a29bfe; }
+        .bloom-Unclassified { background: #95a5a6; }
+
+        .score-high { background: #2ecc71; }
+        .score-medium { background: #f39c12; }
+        .score-low { background: #e74c3c; }
+    </style>
+
+    <script>
+        function revealAnswer(id) {
+            const box = document.getElementById(id);
+            box.style.display = box.style.display === "none" ? "block" : "none";
+        }
+    </script>
+
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2 class="text-center">Generated MCQs</h2>
+
+    <div class="text-center mb-4">
+        {% if txt_filename %}
+        <a class="nice-btn" href="{{ url_for('download_file', filename=txt_filename) }}">Download .TXT</a>
+        {% endif %}
+        {% if pdf_filename %}
+        <a class="nice-btn" href="{{ url_for('download_file', filename=pdf_filename) }}">Download .PDF</a>
+        {% endif %}
+        {% if json_filename %}
+        <a class="nice-btn" href="{{ url_for('download_file', filename=json_filename) }}">Download CO JSON</a>
+        {% endif %}
+    </div>
+
+    <!-- CO Mapping Section -->
+    {% if mapped_mcqs %}
+    <div class="result-box">
+        <h2>CO Mapping Results</h2>
+
+        {% for mcq in mapped_mcqs %}
+        <div class="mapped-question">
+            <h3>Question {{ loop.index }}</h3>
+
+            <p><strong>Question:</strong> {{ mcq.question_text }}</p>
+
+            <p>
+                <strong>Mapped to:</strong> {{ mcq.mapped_co }} - {{ mcq.co_description }}
+            </p>
+
+            <p>
+                <strong>Bloom Level:</strong>
+                <span class="bloom-badge bloom-{{ mcq.bloom_level }}">{{ mcq.bloom_level }}</span>
+            </p>
+
+            <p>
+                <strong>Similarity Score:</strong>
+                <span class="similarity-score 
+                    {% if mcq.similarity_score >= 0.7 %}
+                        score-high
+                    {% elif mcq.similarity_score >= 0.5 %}
+                        score-medium
+                    {% else %}
+                        score-low
+                    {% endif %}
+                ">
+                    {{ mcq.similarity_score }}
+                </span>
+            </p>
+
+            {% if not loop.last %}<hr>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Raw MCQs -->
+    <div class="result-box">
+        <h2>All MCQs</h2>
+
+        {% set mcq_list = mcqs.split('## MCQ') %}
+
+        {% for block in mcq_list %}
+            {% if block.strip() %}
+            {% set lines = block.strip().split('\n') %}
+            {% set q_index = loop.index0 %}
+
+            <div class="mcq-item">
+                <div class="question-title">MCQ {{ q_index }}</div>
+
+                {% for line in lines %}
+                    {% set clean = line.strip() %}
+
+                    {% if clean and not clean.startswith("Correct Answer:") %}
+                        <div>{{ clean }}</div>
+                    {% endif %}
+                {% endfor %}
+
+                {% for line in lines %}
+                    {% if line.startswith("Correct Answer:") %}
+                        <button class="reveal-btn" onclick="revealAnswer('ans{{ q_index }}')">
+                            Reveal Answer
+                        </button>
+                        <div id="ans{{ q_index }}" class="answer-box">{{ line }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="text-center">
+        <a href="/" class="nice-btn">Generate More MCQs</a>
+    </div>
+</div>
+
+</body>
+</html>

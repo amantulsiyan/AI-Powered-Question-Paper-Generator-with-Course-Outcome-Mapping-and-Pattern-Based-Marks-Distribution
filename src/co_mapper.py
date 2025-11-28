@@ -22,51 +22,86 @@ def load_questions(filepath):
 import re
 
 def detect_bloom_level(question):
-    q = question.lower()
+    q = question.lower().strip()
 
-    # Extract the first verb in the question (strong Bloom indicator)
+    # Normalize question
+    q = re.sub(r'[^\w\s]', ' ', q)
+    
+    # Extract first few words (helps identify Bloom level)
     tokens = re.findall(r'\b[a-z]+\b', q)
     first_word = tokens[0] if tokens else ""
+    first_two = " ".join(tokens[:2])
 
-    # Bloom keyword dictionaries
+    # Extended Bloom keyword dictionary with weight scoring
     bloom_keywords = {
         "Remember": [
             "define", "list", "state", "identify", "name", "recall",
-            "what", "when", "where"
+            "what", "when", "where", "label", "select", "find"
         ],
         "Understand": [
             "explain", "describe", "summarize", "interpret", "classify",
-            "differentiate", "discuss", "illustrate"
+            "differentiate", "discuss", "illustrate", "why", "which of the following best",
         ],
         "Apply": [
             "apply", "use", "determine", "solve", "compute",
-            "demonstrate", "execute", "implement", "calculate"
+            "demonstrate", "execute", "implement", "calculate",
+            "choose the correct", "practical", "simulate"
         ],
         "Analyze": [
             "analyze", "compare", "contrast", "differentiate",
-            "distinguish", "examine", "investigate"
+            "distinguish", "examine", "investigate", "break down",
+            "interpret data", "identify patterns"
         ],
         "Evaluate": [
             "evaluate", "justify", "critique", "argue", "assess",
-            "recommend", "validate"
+            "recommend", "validate", "choose the best", "prioritize"
         ],
         "Create": [
             "create", "design", "develop", "construct", "formulate",
-            "compose", "invent", "propose"
+            "compose", "invent", "propose", "hypothesize"
         ]
     }
 
-    # Check first word (most reliable)
+    # -------------- 1. FIRST VERB MATCH (most accurate) -------------- #
     for level, keywords in bloom_keywords.items():
-        if first_word in keywords:
+        if first_word in keywords or first_two in keywords:
             return level
 
-    # Fallback: check anywhere in the question
-    for level, keywords in bloom_keywords.items():
-        if any(re.search(rf'\b{word}\b', q) for word in keywords):
-            return level
+    # -------------- 2. MULTI-KEYWORD SCORING -------------- #
+    scores = {level: 0 for level in bloom_keywords}
 
-    return "Unclassified"
+    for level, keywords in bloom_keywords.items():
+        for word in keywords:
+            if re.search(rf'\b{word}\b', q):
+                scores[level] += 1
+
+    # Pick the highest scoring category
+    best_level = max(scores, key=scores.get)
+    if scores[best_level] > 0:
+        return best_level
+
+    # -------------- 3. AI-based fallback using embeddings -------------- #
+    # Only activate if all keyword matches fail
+    try:
+        from sentence_transformers import SentenceTransformer, util
+        
+        bloom_labels = [
+            "Remember", "Understand", "Apply",
+            "Analyze", "Evaluate", "Create"
+        ]
+        
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        q_emb = model.encode(q, convert_to_tensor=True)
+        label_emb = model.encode(bloom_labels, convert_to_tensor=True)
+
+        scores = util.cos_sim(q_emb, label_emb)[0]
+        best_idx = int(scores.argmax())
+
+        return bloom_labels[best_idx]
+
+    except Exception:
+        return "Unclassified"
+
 
 def co_question_mapper(filepath):
     model=SentenceTransformer('all-MiniLM-L6-v2')
