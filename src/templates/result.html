@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Generated MCQs</title>
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="quiz-bulb.webp">
 
-    <!-- Bootstrap -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -95,7 +92,6 @@
             border-left: 3px solid rgba(255,255,255,0.5);
         }
 
-        /* CO Mapping */
         .mapped-question {
             background: rgba(255, 255, 255, 0.03);
             padding: 20px;
@@ -105,7 +101,8 @@
         }
         .mapped-question strong { color: #d9d9ff; }
 
-        .bloom-badge, .similarity-score {
+        .bloom-badge,
+        .similarity-score {
             display: inline-block;
             padding: 4px 12px;
             border-radius: 15px;
@@ -113,6 +110,7 @@
             font-weight: 600;
             margin-left: 8px;
         }
+
         .bloom-Remember { background: #ff6b6b; }
         .bloom-Understand { background: #4ecdc4; }
         .bloom-Apply { background: #45b7d1; }
@@ -132,8 +130,8 @@
             box.style.display = box.style.display === "none" ? "block" : "none";
         }
     </script>
-
 </head>
+
 <body>
 
 <div class="container mt-5">
@@ -151,7 +149,6 @@
         {% endif %}
     </div>
 
-    <!-- CO Mapping Section -->
     {% if mapped_mcqs %}
     <div class="result-box">
         <h2>CO Mapping Results</h2>
@@ -162,9 +159,7 @@
 
             <p><strong>Question:</strong> {{ mcq.question_text }}</p>
 
-            <p>
-                <strong>Mapped to:</strong> {{ mcq.mapped_co }} - {{ mcq.co_description }}
-            </p>
+            <p><strong>Mapped to:</strong> {{ mcq.mapped_co }} - {{ mcq.co_description }}</p>
 
             <p>
                 <strong>Bloom Level:</strong>
@@ -174,12 +169,9 @@
             <p>
                 <strong>Similarity Score:</strong>
                 <span class="similarity-score 
-                    {% if mcq.similarity_score >= 0.7 %}
-                        score-high
-                    {% elif mcq.similarity_score >= 0.5 %}
-                        score-medium
-                    {% else %}
-                        score-low
+                    {% if mcq.similarity_score >= 0.7 %} score-high
+                    {% elif mcq.similarity_score >= 0.5 %} score-medium
+                    {% else %} score-low
                     {% endif %}
                 ">
                     {{ mcq.similarity_score }}
@@ -192,37 +184,38 @@
     </div>
     {% endif %}
 
-    <!-- Raw MCQs -->
+    <!-- FIXED MCQ SECTION -->
     <div class="result-box">
         <h2>All MCQs</h2>
 
         {% set mcq_list = mcqs.split('## MCQ') %}
 
         {% for block in mcq_list %}
-            {% if block.strip() %}
-            {% set lines = block.strip().split('\n') %}
-            {% set q_index = loop.index0 %}
+            {% set content = block.strip() %}
+            {% if content %}
+                {% set lines = content.split('\n') %}
+                {% set q_number = loop.index %}
 
-            <div class="mcq-item">
-                <div class="question-title">MCQ {{ q_index }}</div>
+                <div class="mcq-item">
+                    <div class="question-title">MCQ {{ q_number }}</div>
 
-                {% for line in lines %}
-                    {% set clean = line.strip() %}
+                    {% set answer_line = None %}
 
-                    {% if clean and not clean.startswith("Correct Answer:") %}
-                        <div>{{ clean }}</div>
+                    {% for line in lines %}
+                        {% if line.startswith("Correct Answer:") %}
+                            {% set answer_line = line %}
+                        {% elif line.strip() %}
+                            <div>{{ line.strip() }}</div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if answer_line %}
+                    <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
+                        Reveal Answer
+                    </button>
+                    <div id="ans{{ q_number }}" class="answer-box">{{ answer_line }}</div>
                     {% endif %}
-                {% endfor %}
-
-                {% for line in lines %}
-                    {% if line.startswith("Correct Answer:") %}
-                        <button class="reveal-btn" onclick="revealAnswer('ans{{ q_index }}')">
-                            Reveal Answer
-                        </button>
-                        <div id="ans{{ q_index }}" class="answer-box">{{ line }}</div>
-                    {% endif %}
-                {% endfor %}
-            </div>
+                </div>
             {% endif %}
         {% endfor %}
     </div>
