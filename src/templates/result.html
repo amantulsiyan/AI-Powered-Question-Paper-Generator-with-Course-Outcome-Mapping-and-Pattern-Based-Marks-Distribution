@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Generated MCQs</title>
-    <link rel="icon" type="image/png" href="quiz-bulb.webp">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -149,6 +148,62 @@
         {% endif %}
     </div>
 
+ <!-- ⭐ MCQs FIRST – each one in its own mapped-style box -->
+<div class="result-box">
+    <h2>All MCQs</h2>
+
+    {% set raw_lines = mcqs.split('\n') %}
+    {% set mcq_blocks = [] %}
+    {% set current_mcq = [] %}
+
+    {% for line in raw_lines %}
+        {% if line.strip().isdigit() and current_mcq %}
+            {% do mcq_blocks.append(current_mcq) %}
+            {% set current_mcq = [line] %}
+        {% else %}
+            {% do current_mcq.append(line) %}
+        {% endif %}
+    {% endfor %}
+
+    {% if current_mcq %}
+        {% do mcq_blocks.append(current_mcq) %}
+    {% endif %}
+
+    {% for block in mcq_blocks %}
+        {% set q_number = loop.index %}
+        {% set answer_line = None %}
+
+        <div class="mapped-question">
+            <div class="question-title">MCQ {{ q_number }}</div>
+
+            {% for line in block %}
+                {% set clean = line.strip() %}
+                {% if clean.startswith("Correct Answer:") %}
+                    {% set answer_line = clean.replace("Correct Answer:", "").strip() %}
+                {% elif clean and not clean.isdigit() %}
+                    <div style="margin-bottom: 6px;">{{ clean }}</div>
+                {% endif %}
+            {% endfor %}
+
+            {% if answer_line %}
+            <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
+                Reveal Answer
+            </button>
+            <div id="ans{{ q_number }}" class="answer-box">
+                <strong>{{ answer_line }}</strong>
+            </div>
+            {% endif %}
+
+            {% if not loop.last %}
+            <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
+            {% endif %}
+        </div>
+
+    {% endfor %}
+</div>
+
+
+    <!-- ⭐ CO MAPPING SECOND -->
     {% if mapped_mcqs %}
     <div class="result-box">
         <h2>CO Mapping Results</h2>
@@ -184,42 +239,6 @@
     </div>
     {% endif %}
 
-    <!-- FIXED MCQ SECTION -->
-    <div class="result-box">
-        <h2>All MCQs</h2>
-
-        {% set mcq_list = mcqs.split('## MCQ') %}
-
-        {% for block in mcq_list %}
-            {% set content = block.strip() %}
-            {% if content %}
-                {% set lines = content.split('\n') %}
-                {% set q_number = loop.index %}
-
-                <div class="mcq-item">
-                    <div class="question-title">MCQ {{ q_number }}</div>
-
-                    {% set answer_line = None %}
-
-                    {% for line in lines %}
-                        {% if line.startswith("Correct Answer:") %}
-                            {% set answer_line = line %}
-                        {% elif line.strip() %}
-                            <div>{{ line.strip() }}</div>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if answer_line %}
-                    <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
-                        Reveal Answer
-                    </button>
-                    <div id="ans{{ q_number }}" class="answer-box">{{ answer_line }}</div>
-                    {% endif %}
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-
     <div class="text-center">
         <a href="/" class="nice-btn">Generate More MCQs</a>
     </div>
@@ -227,3 +246,4 @@
 
 </body>
 </html>
+
