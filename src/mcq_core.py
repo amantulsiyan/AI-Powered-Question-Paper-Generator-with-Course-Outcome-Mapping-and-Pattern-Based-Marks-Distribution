@@ -253,6 +253,13 @@ def generate_balanced_mcqs(text, co_list, total):
 #                              SAVERS
 # ===================================================================
 
+def save_mcqs_txt(text, folder, fname):
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, fname)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return path
+
 def save_mcqs_pdf(text, folder, fname):
     os.makedirs(folder, exist_ok=True)
 
