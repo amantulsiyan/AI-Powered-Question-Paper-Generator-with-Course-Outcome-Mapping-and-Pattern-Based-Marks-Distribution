@@ -121,6 +121,14 @@
         .score-high { background: #2ecc71; }
         .score-medium { background: #f39c12; }
         .score-low { background: #e74c3c; }
+
+        .question-title {
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 14px;
+    color: #cfd0ff; /* Purple-ish like your screenshot */
+}
+
     </style>
 
     <script>
@@ -152,53 +160,40 @@
 <div class="result-box">
     <h2>All MCQs</h2>
 
-    {% set raw_lines = mcqs.split('\n') %}
-    {% set mcq_blocks = [] %}
-    {% set current_mcq = [] %}
+    {% set questions = mcqs.split('\n\n') %}
+    {% for q in questions %}
+        {% set content = q.strip() %}
+        {% if content and "Correct Answer:" in content %}
+            {% set q_number = loop.index %}
 
-    {% for line in raw_lines %}
-        {% if line.strip().isdigit() and current_mcq %}
-            {% do mcq_blocks.append(current_mcq) %}
-            {% set current_mcq = [line] %}
-        {% else %}
-            {% do current_mcq.append(line) %}
-        {% endif %}
-    {% endfor %}
+            <div class="mapped-question">
+                <h3>MCQ {{ q_number }}</h3>
 
-    {% if current_mcq %}
-        {% do mcq_blocks.append(current_mcq) %}
-    {% endif %}
+                {% set lines = content.split('\n') %}
+                {% set answer_line = None %}
 
-    {% for block in mcq_blocks %}
-        {% set q_number = loop.index %}
-        {% set answer_line = None %}
+                {% for line in lines %}
+                    {% set clean = line.strip() %}
+                    {% if clean.startswith("Correct Answer:") %}
+                        {% set answer_line = clean %}
+                    {% elif clean and not clean.isdigit() %}
+                        <div style="margin-bottom: 6px;">{{ clean }}</div>
+                    {% endif %}
+                {% endfor %}
 
-        <div class="mapped-question">
-            <div class="question-title">MCQ {{ q_number }}</div>
-
-            {% for line in block %}
-                {% set clean = line.strip() %}
-                {% if clean.startswith("Correct Answer:") %}
-                    {% set answer_line = clean.replace("Correct Answer:", "").strip() %}
-                {% elif clean and not clean.isdigit() %}
-                    <div style="margin-bottom: 6px;">{{ clean }}</div>
+                {% if answer_line %}
+                <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
+                    Reveal Answer
+                </button>
+                <div id="ans{{ q_number }}" class="answer-box">{{ answer_line }}</div>
                 {% endif %}
-            {% endfor %}
 
-            {% if answer_line %}
-            <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
-                Reveal Answer
-            </button>
-            <div id="ans{{ q_number }}" class="answer-box">
-                <strong>{{ answer_line }}</strong>
+                {% if not loop.last %}
+                <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
+                {% endif %}
             </div>
-            {% endif %}
 
-            {% if not loop.last %}
-            <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
-            {% endif %}
-        </div>
-
+        {% endif %}
     {% endfor %}
 </div>
 
@@ -246,4 +241,5 @@
 
 </body>
 </html>
+
 
