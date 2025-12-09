@@ -253,37 +253,31 @@ def generate_balanced_mcqs(text, co_list, total):
 #                              SAVERS
 # ===================================================================
 
+def save_mcqs_txt(text, folder, fname):
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, fname)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return path
+
+
 def save_mcqs_pdf(text, folder, fname):
     os.makedirs(folder, exist_ok=True)
 
     pdf = FPDF()
     pdf.add_page()
 
-    # Register a unicode font
-    font_path = os.path.join("src", "fonts", "NotoSans-Regular.ttf")
+    # Load Unicode font
+    font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSans-Regular.ttf")
     pdf.add_font("Noto", "", font_path, uni=True)
-
     pdf.set_font("Noto", size=11)
 
+    # Write content
     for block in text.split("## MCQ"):
-        if block.strip():
-            pdf.multi_cell(0, 10, block.strip())
-            pdf.ln(5)
-
-    path = os.path.join(folder, fname)
-    pdf.output(path)
-
-
-def save_mcqs_pdf(text, folder, fname):
-    os.makedirs(folder, exist_ok=True)
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=11)
-
-    for block in text.split("## MCQ"):
-        if block.strip():
-            pdf.multi_cell(0, 10, block.strip())
-            pdf.ln(5)
+        block = block.strip()
+        if block:
+            pdf.multi_cell(0, 8, block)
+            pdf.ln(3)
 
     path = os.path.join(folder, fname)
     pdf.output(path)
