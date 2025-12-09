@@ -4,6 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, send_file
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+load_dotenv()
 
 from mcq_core import (
     extract_text,
