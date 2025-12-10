@@ -166,37 +166,38 @@
         {% set content = q.strip() %}
         {% if content and "Correct Answer:" in content %}
             {% set q_number = loop.index %}
+            {% set lines = content.split('\n') %}
+            {% set ns = namespace(answer_line='') %}
 
             <div class="mapped-question">
                 <h3>MCQ {{ q_number }}</h3>
 
-                {% set lines = content.split('\n') %}
-                {% set answer_line = None %}
-
                 {% for line in lines %}
                     {% set clean = line.strip() %}
                     {% if clean.startswith("Correct Answer:") %}
-                        {% set answer_line = clean %}
+                        {% set ns.answer_line = clean %}
                     {% elif clean and not clean.isdigit() %}
                         <div style="margin-bottom: 6px;">{{ clean }}</div>
                     {% endif %}
                 {% endfor %}
 
-                {% if answer_line %}
-                <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
-                    Reveal Answer
-                </button>
-                <div id="ans{{ q_number }}" class="answer-box">{{ answer_line }}</div>
+                {% if ns.answer_line %}
+                    <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">
+                        Reveal Answer
+                    </button>
+                    <div id="ans{{ q_number }}" class="answer-box">
+                        {{ ns.answer_line }}
+                    </div>
                 {% endif %}
 
                 {% if not loop.last %}
-                <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
+                    <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
                 {% endif %}
             </div>
-
         {% endif %}
     {% endfor %}
 </div>
+
 
 
     <!-- ⭐ CO MAPPING SECOND -->

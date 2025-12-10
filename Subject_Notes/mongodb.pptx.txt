@@ -1,0 +1,313 @@
+
+
+----- Page 1 -----
+MongoDB
+
+
+----- Page 2 -----
+* Databases, collections, documents are important parts
+of MongoDB without them you are not able to store
+data on the MongoDB server.
+
+* A Database contains a collection, and a collection
+contains documents and the documents contain data,
+they are related to each other.
+
+
+----- Page 3 -----
+Database
+
+a
+<
+2
+p-4
+Py
+=
+°
+(5)
+
+a
+Ie
+2
+ry
+3
+9
+(5)
+
+
+
+----- Page 4 -----
++ In MongoDB, a database contains the collections of
+documents.
+One can create multiple databases on the MongoDB server.
+
+View Database:
+* To see how many databases are present in your MongoDB
+server, write the following statement in the mongo shell:
+
+show dbs
+
+
+----- Page 5 -----
+Naming Restriction for Database:
+
+Before creating a database you should first learn about the naming
+restrictions for databases:
+* In MongoDB, the names of the database are case insensitive, but
+you must always remember that the database names cannot differ
+only by the case of the characters.
+For windows user, MongoDB database names cannot contain any
+of these following characters:
+A."$*:)2
+* For Unix and Linux users, MongoDB database names cannot
+contain any of these following characters:
+A."$
+MongoDB database names cannot contain null characters(in
+windows, Unix, and Linux systems).
+MongoDB database names cannot be empty and must contain less
+than 64 characters.
+
+
+
+----- Page 6 -----
+Creating Database:
+
++ Inthe mongo shell, you can create a database with the help of
+the following command:
+use database_name
+This command actually switches you to the new database if the
+given name does not exist
+If the given name exists, then it will switch you to the existing
+database.
+Now at this stage, if you use the show command to see the
+database list where you will find that your new database is not
+present in that database list because, in MongoDB, the
+database is actually created when you start entering data in that
+database.
+
+
+----- Page 7 -----
+For Example:
+
+‘e060 © anki — mongo — 72x20
+
+improvements and to suggest MongoDB products and deployment options to y
+ou.
+
+To enable free monitoring, run the following command: db.enableFreeMonit
+oring()
+
+To permanently disable this reminder, run the following command: db.disa
+bleFreeMonitoring()
+
+> show dbs
+
+admin 0.00068
+config 0.00068
+local @.@00G8
+
+> use GeeksforGeeks
+switched to db GeeksforGeeks
+> show dbs
+
+admin 0.00068
+config 0.00068
+local @.0068
+>t
+
+
+----- Page 8 -----
+Collection
+
+Collections are just like tables in relational databases,
+they also store data, but in the form of documents. A
+single database is allowed to store multiple
+
+collections.
+
+Schemaless:
+
+As we know that MongoDB databases are schemaless.
+So, it is not necessary in a collection that the schema of
+one document is similar to another document.
+
+in other words, a single collection contains different
+types of documents like as shown in the below example
+mystudentData collection contain two different types of
+documents:
+
+
+----- Page 9 -----
+@e0@e@ © anki — mongo — 89x17
+> db.mystudentData. find().pretty()
+
+{
+§.id® ObjectId("5e37b67303ab1253cde7afe6"),
+Sumit",
+“branch
+"course
+"amount
+"paid"
++
+{
+"id" : "geeks_for_geeks_201",
+“name "Rohit",
+"branch "ECE",
+“course "Sudo Gate",
+“year" : 2020
+Fe
+
+
+----- Page 10 -----
+Collection
+
+Naming Restrictions for Collection:
+
+* Before creating a collection you should first learn about the naming
+restrictions for collections:
+
+Collection name must starts with an underscore or a character.
+
+Collection name does not contain $, empty string, null character
+
+and does not begin with system. prefix.
+
+* The maximum length of the collection name is 120 bytes(including
+the database name, dot separator, and the collection name).
+
+Creating collection:
+
++ After creating database now we create a collection to store
+documents. The collection is created using the following syntax:
+db.collection_name.insertOne({..})
+
+* Here, insertOne() function is used to store single data in the
+specified collection.
+
++ And in the curly braces {} we store our data or in other words, it is
+a document
+
+
+----- Page 11 -----
+@00@ © anki — mongo — 72x20
+
+> use GeeksforGeeks
+switched to db GeeksforGeeks
+> db.Author.insertOne({name: "Ankita"})
+{
+"acknowledged" : true,
+"insertedId" : ObjectId("5e3799ff1993ad62dcde4f0d")
+
+}
+>i
+
+
+----- Page 12 -----
+In this example, we create a collection named as the Author and we
+
+insert data in it with the help of insertOne() function.
+
+{name: “Ankita’”} is a document in the Author collection
+
+the name is the key or field and “Ankita” is the value of this key or
+ield.
+
+After pressing enter we got a message(as shown in the image) and
+
+this message tells us that the data enters successfully (i-e.,
+
+“acknowledge”: true)
+
+And also assigns an automatically created id.
+
+It is the special feature provided by MongoDB that every document
+
+provided a unique id and generally, this id is created automatically,
+ut you are allowed to create your own id (must be unique).
+
+
+
+----- Page 13 -----
+Document
+
+In MongoDB, the data records are stored as BSON
+documents.
+
+Here, BSON stands for binary representation of JSON
+documents, although BSON contains more data types as
+compared to JSON. The document is created using
+field-value pairs or key-value pairs and the value of the field
+can be of any BSON type.
+
+Syntax:
+
+{ field1: value
+
+field2: value2
+
+fieldN: valueN }
+
+
+----- Page 14 -----
+Naming restriction of fields:
+
+* The field names are of strings.
+
+* The _id field name is reserved to use as a
+primary key. And the value of this field must
+be unique, immutable, and can be of any type
+other than an array.
+
+* The field name cannot contain null characters.
+
+* The top-level field names should not start with
+a dollar sign ($).
+
+
+----- Page 15 -----
+e00e © anki —mongo — 89x24
+« Number of files is 256, should be at least 1000
+
+Enable MongoDB's free cloud-based monitoring service, which will then receive and display
+metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+
+The monitoring data will be available on a MongoDB website with a unique URL accessible t
+© you
+
+and anyone you share the URL with. MongoDB may use this information to make product
+improvements and to suggest MongoDB products and deployment options to you.
+
+To enable free monitoring, run the following command: db.enableFreeMonitoring()
+To permanently disable this reminder, run the following conmand: db.disableFreeMonitoring
+
+0
+
+> use GeeksforGeeks
+
+switched to db GeeksforGeeks
+
+> db.mystudentData.insertOne({ name: "Sumit", branch: "CSE", course: "DSA", amount: 4999,
+paid: "Yes"})
+
+i
+
+"acknowledged" : true,
+
+“insertedId" : ObjectId("5e37b67303ab1253cde7afe6")
+y
+>t
+
+
+----- Page 16 -----
+[ wom } ©® anki — mongo — 89x24
+> use GeeksforGeeks
+
+switched to db GeeksforGeeks
+
+> db.mystudentData. insertOne({
+
+geeks_for_geeks_201",
+
+3)
+cknowledged" : true, "insertedId" : "geeks_for_geeks_201" }
+

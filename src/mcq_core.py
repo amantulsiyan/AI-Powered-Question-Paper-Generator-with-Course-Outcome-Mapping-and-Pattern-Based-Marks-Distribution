@@ -4,61 +4,27 @@ import docx
 import pdfplumber
 from fpdf import FPDF
 
-from langchain_core.prompts import PromptTemplate
-from langchain_groq import ChatGroq
-
 from sentence_transformers import SentenceTransformer, util
 
+import google.generativeai as genai
+
 
 # ===================================================================
-#                      API & LLM INITIALIZATION
+#                      API & LLM INITIALIZATION (GEMINI)
 # ===================================================================
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-if not GROQ_API_KEY:
-    raise ValueError("❌ GROQ_API_KEY missing! Please set it first.")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("❌ GEMINI_API_KEY missing! Please set it as an environment variable.")
 
-llm = ChatGroq(
-    api_key=GROQ_API_KEY,
-    model="llama-3.3-70b-versatile",
-    temperature=0.2
-)
+genai.configure(api_key=GEMINI_API_KEY)
 
-# ===================================================================
-#                          PROMPT TEMPLATE
-# ===================================================================
+# Fast, cheap and good for MCQs
+GEMINI_MODEL = genai.GenerativeModel("gemini-2.5-flash")
 
-co_prompt = PromptTemplate(
-    input_variables=["context", "co_description", "num_questions"],
-    template="""
-You are an expert exam-question designer.
 
-Generate exactly {num_questions} MCQs for the following Course Outcome (CO):
 
-CO Description:
-"{co_description}"
 
-STRICT RULES:
-- Use Bloom levels ONLY: Apply, Analyze, Evaluate
-- Questions must clearly reflect the CO’s terminology
-- Do NOT generate theoretical/general questions
-- Stick to the reference text context
-- Each MCQ MUST follow EXACT format:
-
-## MCQ
-Question: <question statement>
-A) <option>
-B) <option>
-C) <option>
-D) <option>
-Correct Answer: <A/B/C/D>
-
-REFERENCE TEXT:
-{context}
-"""
-)
-
-co_chain = co_prompt | llm
 
 # ===================================================================
 #                         TEXT EXTRACTION
@@ -131,6 +97,17 @@ def detect_bloom_level(question):
 # ===================================================================
 
 def parse_and_map_mcqs(raw_text, co_list):
+    """
+    Expects MCQs in blocks like:
+
+    ## MCQ
+    Question: ...
+    A) ...
+    B) ...
+    C) ...
+    D) ...
+    Correct Answer: A
+    """
     model = SentenceTransformer("all-MiniLM-L6-v2")
     co_embeddings = model.encode(co_list, convert_to_tensor=True)
 
@@ -180,37 +157,72 @@ def parse_and_map_mcqs(raw_text, co_list):
 
 
 # ===================================================================
-#                MCQ GENERATION WITH RETRY SYSTEM
+#            MCQ GENERATION USING GEMINI (per CO)
 # ===================================================================
+
+def _build_co_prompt(context: str, co_description: str, num_questions: int) -> str:
+    """
+    Builds the same style prompt you used with LangChain, now as a plain string.
+    """
+    return f"""
+You are an expert exam-question designer.
+
+Generate exactly {num_questions} MCQs for the following Course Outcome (CO):
+
+CO Description:
+\"{co_description}\"
+
+STRICT RULES:
+- Use Bloom levels ONLY: Apply, Analyze, Evaluate.
+- Questions must clearly reflect the CO’s terminology.
+- Do NOT generate purely theoretical/general questions.
+- Stick to the reference text context.
+- For EVERY MCQ, start with a line exactly '## MCQ'.
+- Each MCQ MUST follow EXACT format:
+
+## MCQ
+Question: <question statement>
+A) <option>
+B) <option>
+C) <option>
+D) <option>
+Correct Answer: <A/B/C/D>
+
+REFERENCE TEXT:
+{context}
+"""
+
 
 def generate_mcqs_for_co(text, co_description, n):
-    response = co_chain.invoke({
-        "context": text,
-        "co_description": co_description,
-        "num_questions": n
-    })
+    prompt = _build_co_prompt(text, co_description, n)
 
     try:
-        return response.content
-    except:
-        return str(response)
+        response = GEMINI_MODEL.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        # Let caller decide how to handle; keep it readable
+        raise RuntimeError(f"Gemini generation error: {e}")
 
 
 # ===================================================================
-#    NEW: PERFECTLY BALANCED, EXACT COUNT, RETRY-BASED GENERATION
+#    PERFECTLY BALANCED, EXACT COUNT, RETRY-BASED GENERATION
 # ===================================================================
 
 def generate_balanced_mcqs(text, co_list, total):
     n = len(co_list)
+    if n == 0:
+        raise ValueError("CO list is empty.")
 
     base = total // n
     extra = total % n
 
     all_raw = ""
 
-    # --------------- FIRST GENERATION ---------------
+    # --------------- FIRST GENERATION --------------- #
     for i, co in enumerate(co_list):
         count = base + (1 if i < extra else 0)
+        if count <= 0:
+            continue
         print(f"Generating {count} MCQs for CO{i+1}")
         out = generate_mcqs_for_co(text, co, count)
         all_raw += out + "\n\n"
@@ -221,7 +233,7 @@ def generate_balanced_mcqs(text, co_list, total):
 
     missing = total - len(parsed)
 
-    # --------------- RETRY LOGIC FOR MISSING MCQs ---------------
+    # --------------- RETRY LOGIC FOR MISSING MCQs --------------- #
     cycles = 0
     while missing > 0 and cycles < 3:
         cycles += 1
@@ -259,6 +271,7 @@ def save_mcqs_txt(text, folder, fname):
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     return path
+
 
 def save_mcqs_pdf(text, folder, fname):
     os.makedirs(folder, exist_ok=True)

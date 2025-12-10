@@ -1,0 +1,438 @@
+
+
+----- Page 1 -----
+Unit 5
+NoSQL
+
+
+----- Page 2 -----
+About NoSql
+
++ ANOSQL database provides a mechanism for storage and retrieval of data that is
+modeled in means other than the tabular relations used in relational databases.
+
+* Motivations for this approach include simplicity of design, horizontal scaling and
+finer control over availability. The data structure (e.g., tree, graph, key-value)
+differs from the RDBMS, and therefore some operations are faster in NOSQL and
+some in RDBMS.
+
+
+----- Page 3 -----
+Types of NoSQL Databases
+
+NoSQL
+*Document-based databases
+Key-Value Column-Family
+*Key-value stores
+: Key + +25
+*Column-oriented databases j=-@p —
+*Graph-based databases i-e@D
+Graph Document
+
+
+----- Page 4 -----
+Key features of documents databas
+
+Document-based database
+
+‘The document-based database is a nonrelational database.
+
+Instead of storing the data in rows and columns (tables), it uses the documents to store the data in the database.
+A document database stores data in JSON, BSON, or XML documents
+
+Documents can be stored and retrieved in a form that is much closer to the data objects
+
+In the Document database, the particular elements can be accessed by using the index value that is assigned for
+faster querying
+
+Collections are the group of documents that store documents that have similar contents
+
+Not all the documents are in any collection as they require a similar schema because document databases have a
+flexible schema.
+
+Flexible schema: Documents in the database has a flexible schema. It means the documents in the database need
+not be the same schema,
+
+Faster creation and maintenance: the creation of documents is easy and minimal maintenance is required once
+we create the document.
+
+No foreign keys: There is no dynamic relationship between two documents so documents can be independent of
+one another. So, there is no requirement for a foreign key in a document database.
+
+Open formats: To build a document we use XML, JSON, and others.
+
+> Examples: CouchDB, MongoDb
+> Strengths: Tolerant of incomplete data
+
+Weaknesses: Query performance, no standard query syntax
+
+“Firstnane™: "Joba",
+slastiane": “saith”,
+“istive": true,
+
+sage’: 2
+vadress":(
+
+“streetAddress": “21 2nd Stet",
+ety": "Wes York”,
+
+“postalcode": "10021-3100
+“ponehunbers":
+{
+“type”: “hone
+snamber": "212
+»
+“type: "office",
+smumber": "646 sis
+
+»
+
+type": “eobie",
+manber": "123 «56-7600
+
+?
+
+children”: (),
+spouse": nll
+
+
+----- Page 5 -----
+Key-Value Stores
+
++ A key-value store is a nonrelational database.
+
+* The simplest form of a NoSQL database is a key-value store.
+
++ Every data element in the database is stored in key-value pairs.
+
++ The data can be retrieved by using a unique key allotted to each element in the
+
+database
+
++ The values can be simple data types like strings and numbers or complex objects.
+
+keys
+
+Key features of the key-value store:
+
+Values
+
++ Simplicity.
+
+(name wena, Age"219
+
+* Scalability.
+
+26210
+
+xem um dlr st ame
+
+aaa
+
+SimpleDB, Riak
+
+(rae Maron Grand, Profession "Actor
+
+» Strengths: Fast lookups
+
+> Examples: Tokyo Cabinet/Tyrant, Redis, Voldemort, Oracle BDB, Amazon
+» Weaknesses: Stored data has no schema |
+
+e002
+
+I]
+
+2
+
+
+
+----- Page 6 -----
+Column Oriented Databases:
+
++ Acolumn-oriented database is a non-relational database that stores the data in columns instead of rows
+
++ That means when we want to run analytics on a small number of columns, you can read those columns
+directly
+
++ Columnar databases are designed to read data more efficiently and retrieve the data with greater speed.
++ Acolumnar database is used to store a large amount of data.
+Key features of columnar oriented database:
+* Scalability.
+
+C . > Examples: Cassandra, HBase
+* Compression.
+
+* Very responsive.
+
+Row-orientad
+
+name designation [salary
+
+raju manager | 50,000
+
+ravi stengineer | 30,000
+
+rajesh jrengineer [25,000
+
+
+
+----- Page 7 -----
+Graph-Based databases: bs)
+
++ Graph-based databases focus on the relationship between
+the elements
+
+Finance and
+
++ It stores the data in the form of nodes in the database. The (oo) Keay
+
+connections between the nodes are called links or
+relationships.
+
+Key features of graph database:
+
+In a graph-based database, it is easy to identify the
+relationship between the data by using the links.
+
+The Query’s output is real-time results.
+
+The speed depends upon the number of relationships
+among the database elements.
+
+Updating data is also easy, as adding a new node or edge
+toa graph database is a straightforward task that does not
+require significant schema changes.
+
+> Examples: Neo4J, InfoGrid, Infinite Graph
+> Strengths: Graph algorithms e.g. shortest path,n degree relationships, etc.
+> Weaknesses: Traverse the entire graph to achieve a definitive answer. Not easy to cluster
+
+
+----- Page 8 -----
+Choosing databases in
+SQL
+NoSQL
++ SQL database-Structured Query Language -strength and weakness
+-Table based
+-Relational de
+
+tem design
+
+abase
+
+-which means it allows querying on relationship between data among multiple
+tables
+
+-Table relationships are effective for organizing and structuring different data
+-Data is well structured and potentially errors are reduced
+- because data model and format of the to be known before storing
+-ACID complaint
+-Structure must be created in advance: means columns and tables has to be created ahead of time
+-SQL database takes more time to setup compared to NoSQL database
+-Not effective for storing and querying Unstructured data where the format is unknown
+
+-Difficult to scale horizontally because of their relational nature , for write heavy
+vertically scale the database up is more expensive than provisioning additional s
+
+stems usually to
+vers
+
+-Vertically scalable- vertically scaling the workload with a bigger, single server.
+
+
+
+----- Page 9 -----
+NoSQL database
+-Document, key value, graph or wide column stores SQL
+-More flexible and simpler to setup because they don’t support table __ relationships
+-Data is usually stored in document or key value pairs
+-Better choice for storing unstructured data
+
+-Data sharding:because of handling unstructured data they can shard this data across
+different data stores allowing for distributed database, this" makes horizontal scaling easier,
+large amount of data is stored without _ having to purchase single expensive server
+
+-Horizontally scalable - horizontally partitioning the workload across multiple servers
+
+
+----- Page 10 -----
+Horizontal and Vertical Scaling In Databases
+
+Resource Rack 2 ae eae eae
+
+
+
+----- Page 11 -----
+Key Highlights on SQL vs NoSQL
+sau
+RELATIONAL DATABASE MANAGEMENT SYSTEM ROBMS)
+These databases have fied or sat or predefined schema
+“These databases ae nt sited for hierarchical data storage
+These databases are best uted for complex queries
+Vertically Seaable
+Follows ACIO property
+
+Examples: MySOL, PostoreSOL. Oracle, MS-SQL Server ete
+
+NosQu
+
+Non-elational or distributed database system.
+
+‘They have a dynamic schema
+
+‘These databases are best sited for hierarchical data storage
+
+‘These databases are not so.good for complex queries
+
+Horizontally scalable
+
+Follows CAPIconsistency, availabilty, partition tolerance)
+
+Examples: MongaDB, HBase, Neod), Cassandra ete
+
+
+----- Page 12 -----
+CAP Theorem
+
+* The CAP theorem, also known as Brewer's theorem
+
++ It is a fundamental principle in distributed computing that states that in a distributed data
+store, it is impossible to simultaneously guarantee all three of the following properties:
+
+1. Consistency: Every read receives the most recent write or an error. .
+
+2, Availability: Every request receives a response, without the guarantee that it
+contains the most recent write.
+
+3. Partition tolerance: The system continues to operate despite network partitions or
+communication failures between nodes.
+
++ According to the CAP theorem, a distributed system can only guarantee two out of these
+three properties at any given time.
+
++ This theorem helps in understanding the trade-offs and design choices when building
+distributed systems.
+
++ Different distributed databases and systems make different choices based on their specific
+requirements and priorities.
+
++ For example, some systems prioritize consistency and partition tolerance (CA systems),
+while others prioritize availability and partition tolerance (AP systems), and there are also
+systems that prioritize consistency and availability (CP systems);
+
+
+----- Page 13 -----
+MongoDB
+
++ MongoDB is a popular NoSQL database that uses a flexible document-based data
+model, making it easy to store and manage data.
+
++ Here's a brief overview of getting started with MongoDB:
+1. Documents:
++ In MongoDB, data is stored in flexible, JSON-like documents.
+
++ Each document,can have its own unique structure, unlike traditional relational databases
+where all rows in a table have the same structure.
+
++ A document in MongoDB is similar to a record or a row in a relational database.
+
++ It consists of field-yalue pairs where the field is a unique identifier for the data and the
+value can be of various types (strings, numbers, arrays, other documents, etc.).
+
+2. Collections:
+
+* Collections in MongoDB are analogous to tables in relational databases. They are
+groups of MongoDB documents.
+
+* Collections do not enforce a schema. This means that documents within a collection can
+have different fields and structures.
+
+
+
+----- Page 14 -----
+3. Databases:
+
+* MongoDB stores collections in databa:
+each database can have multiple colle
+
++ Databases in MongoDB are namespaces for collections. A single MongoDB instance can support
+multiple independent databases.
+
+4, Data Types: | .
+
+B supports a variety of data types for values in documents, Some common data types
+
+- String: UTF-8 encode
+= Integer: 32-bit or 64
+
+A MongoDB server can have multiple databases, and
+ions.
+
+acter sequenc’
+igned integers.
+
+it
+
+Ordered li:
+
+- Arrays
+ject: Embedded documents.
+
+= Ob
+jjectid: A unique identifier.
+- Date: Represents a date and time.
+
+
+----- Page 15 -----
++ Databases, collections, documents are important parts of MongoDB without them
+you are not able to store data on the MongoDB server.
+
++ A Database contains a collection, and a collection contains documents and the
+documents contain data, they are related to each other.
+
++ In MongoDB, a database contains the collections of documents.
+* One can create multiple databases on the MongoDB server.
+
+@
+8 2
+Fs 3
+3 2
+
+ra
+C 6
+
+@
+2
+s
+F
+3
+°°
+
+
+
+----- Page 16 -----
+* View Database:
+
+* To see how many databases are present in your MongoDB server, write the
+following statement in the mongo shell:
+* show dbs
+
+Here, we freshly started MongoDB so we do not have a database except these three default
+databases, i.e, admin, config, and local.
+
+eo50e © anki —mongo—72«15
+ake product
+
+Unprovenents and to suggest HongoDs products and deployment options to y
+ou.
+
+To enable free monitoring, run the following comand: db.enableFreeMonit
+oring()
+
+To permanently disable this reminder, run the following command: db.disa
+bleFreeMonitoring()
+
+> show dbs
+admin 0.00068
+config 0.00068
+local @.000GB
