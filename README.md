@@ -38,20 +38,24 @@ This project was developed as a learning-oriented implementation to apply concep
 
 ## Project Structure
 
+## Project Structure
+
+```text
 AI_MCQ_New/
 ├── src/
-│ ├── app.py # Flask application and routes
-│ ├── mcq_core.py # Core logic for MCQ generation and mapping
-│ ├── co_mapper.py # Standalone CO mapping utility
-│ ├── main.py # CLI-based testing script
-│ ├── test_gemini_models.py # Gemini model availability checker
-│ └── templates/
-│ ├── index.html # Input form UI
-│ └── result.html # MCQ display and download page
-├── uploads/ # Uploaded files
-├── results/ # Generated outputs
+│   ├── app.py                  # Flask application and routes
+│   ├── mcq_core.py              # Core logic for MCQ generation and mapping
+│   ├── co_mapper.py             # Standalone CO mapping utility
+│   ├── main.py                  # CLI-based testing script
+│   ├── test_gemini_models.py    # Gemini model availability checker
+│   └── templates/
+│       ├── index.html           # Input form UI
+│       └── result.html          # MCQ display and download page
+├── uploads/                     # Uploaded files
+├── results/                     # Generated outputs
 ├── requirements.txt
 ├── README.md
+
 
 ---
 
