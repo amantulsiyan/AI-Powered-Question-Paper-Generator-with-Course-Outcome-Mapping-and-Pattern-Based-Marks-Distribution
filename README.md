@@ -38,8 +38,6 @@ This project was developed as a learning-oriented implementation to apply concep
 
 ## Project Structure
 
-## Project Structure
-
 ```text
 AI_MCQ_New/
 ├── src/
@@ -55,7 +53,7 @@ AI_MCQ_New/
 ├── results/                     # Generated outputs
 ├── requirements.txt
 ├── README.md
-
+```
 
 ---
 
