@@ -47,7 +47,8 @@ def extract_text(file_path):
         return "\n".join(p.text for p in doc.paragraphs)
 
     elif ext == "txt":
-        return open(file_path, "r", encoding="utf-8").read()
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     else:
         raise ValueError("Unsupported file format.")
@@ -197,10 +198,12 @@ def generate_mcqs_for_co(text, co_description, n):
     prompt = _build_co_prompt(text, co_description, n)
 
     try:
-        response = GEMINI_MODEL.generate_content(prompt)
+        response = GEMINI_MODEL.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": 2048}
+        )
         return response.text
     except Exception as e:
-        # Let caller decide how to handle; keep it readable
         raise RuntimeError(f"Gemini generation error: {e}")
 
 
@@ -279,7 +282,6 @@ def save_mcqs_pdf(text, folder, fname):
     pdf = FPDF()
     font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSans-Regular.ttf")
 
-    print("FONT PATH:", font_path, os.path.exists(font_path))  # TEMP DEBUG
 
     pdf.add_font("Noto", "", font_path, uni=True)
     pdf.set_font("Noto", size=11)

@@ -3,7 +3,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, send_file
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename, safe_join
 from dotenv import load_dotenv
 import traceback
 
@@ -190,8 +190,8 @@ def generate_mcqs():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    path = os.path.join(app.config['RESULTS_FOLDER'], filename)
-    if not os.path.exists(path):
+    path = safe_join(os.path.abspath(app.config['RESULTS_FOLDER']), filename)
+    if path is None or not os.path.exists(path):
         return render_template('index.html', error_message="Requested file not found.")
     return send_file(path, as_attachment=True)
 
