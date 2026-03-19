@@ -4,8 +4,7 @@ import docx
 import pdfplumber
 from fpdf import FPDF
 
-from sentence_transformers import SentenceTransformer, util
-
+import numpy as np
 import google.generativeai as genai
 
 
@@ -97,20 +96,23 @@ def detect_bloom_level(question):
 #                    MCQ PARSER (VERY STRONG)
 # ===================================================================
 
-def parse_and_map_mcqs(raw_text, co_list):
-    """
-    Expects MCQs in blocks like:
+def _gemini_embed(texts: list) -> np.ndarray:
+    result = genai.embed_content(
+        model="models/text-embedding-004",
+        content=texts,
+        task_type="semantic_similarity"
+    )
+    return np.array(result["embedding"])
 
-    ## MCQ
-    Question: ...
-    A) ...
-    B) ...
-    C) ...
-    D) ...
-    Correct Answer: A
-    """
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    co_embeddings = model.encode(co_list, convert_to_tensor=True)
+
+def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    a = a / (np.linalg.norm(a, keepdims=True) + 1e-10)
+    b = b / (np.linalg.norm(b, axis=1, keepdims=True) + 1e-10)
+    return b @ a
+
+
+def parse_and_map_mcqs(raw_text, co_list):
+    co_embeddings = _gemini_embed(co_list)
 
     mcq_blocks = raw_text.split("## MCQ")
     results = []
@@ -119,26 +121,22 @@ def parse_and_map_mcqs(raw_text, co_list):
         if not block.strip():
             continue
 
-        # Extract question
         q_match = re.search(r"Question:\s*(.*)", block)
         if not q_match:
             continue
         question = q_match.group(1).strip()
 
-        # Extract options
         options = {}
         for opt in ["A", "B", "C", "D"]:
             m = re.search(rf"{opt}\)\s*(.*)", block)
             if m:
                 options[opt] = m.group(1).strip()
 
-        # Extract correct answer
         c_match = re.search(r"Correct Answer:\s*([A-D])", block)
         correct = c_match.group(1).upper() if c_match else "Unknown"
 
-        # Perform mapping using semantic similarity
-        q_embed = model.encode(question, convert_to_tensor=True)
-        sims = util.cos_sim(q_embed, co_embeddings)[0]
+        q_embed = _gemini_embed([question])[0]
+        sims = _cosine_sim(q_embed, co_embeddings)
         best = int(sims.argmax())
 
         bloom = detect_bloom_level(question)
