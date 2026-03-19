@@ -9,12 +9,10 @@ import traceback
 
 load_dotenv()
 
-from mcq_core import (
-    extract_text,
-    generate_balanced_mcqs,
-    save_mcqs_txt,
-    save_mcqs_pdf,
-)
+try:
+    from mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
+except ModuleNotFoundError:
+    from src.mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
