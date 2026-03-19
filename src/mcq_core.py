@@ -5,7 +5,8 @@ import pdfplumber
 from fpdf import FPDF
 
 import numpy as np
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 
 # ===================================================================
@@ -16,10 +17,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("❌ GEMINI_API_KEY missing! Please set it as an environment variable.")
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Fast, cheap and good for MCQs
-GEMINI_MODEL = genai.GenerativeModel("gemini-2.5-flash")
+GEMINI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
 
 
 
@@ -97,12 +95,12 @@ def detect_bloom_level(question):
 # ===================================================================
 
 def _gemini_embed(texts: list) -> np.ndarray:
-    result = genai.embed_content(
-        model="models/text-embedding-004",
-        content=texts,
-        task_type="semantic_similarity"
+    result = GEMINI_CLIENT.models.embed_content(
+        model="text-embedding-004",
+        contents=texts,
+        config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
     )
-    return np.array(result["embedding"])
+    return np.array([e.values for e in result.embeddings])
 
 
 def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -137,6 +135,7 @@ def parse_and_map_mcqs(raw_text, co_list):
 
         q_embed = _gemini_embed([question])[0]
         sims = _cosine_sim(q_embed, co_embeddings)
+
         best = int(sims.argmax())
 
         bloom = detect_bloom_level(question)
@@ -196,9 +195,10 @@ def generate_mcqs_for_co(text, co_description, n):
     prompt = _build_co_prompt(text, co_description, n)
 
     try:
-        response = GEMINI_MODEL.generate_content(
-            prompt,
-            generation_config={"max_output_tokens": 2048}
+        response = GEMINI_CLIENT.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(max_output_tokens=2048)
         )
         return response.text
     except Exception as e:
