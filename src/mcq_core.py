@@ -1,26 +1,23 @@
 import os
 import re
+import json
+import requests
 import docx
 import pdfplumber
-from fpdf import FPDF
-
 import numpy as np
-from google import genai
-from google.genai import types
+from fpdf import FPDF
 
 
 # ===================================================================
-#                      API & LLM INITIALIZATION (GEMINI)
+#                      API & LLM INITIALIZATION
 # ===================================================================
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    raise ValueError("❌ GEMINI_API_KEY missing! Please set it as an environment variable.")
+    raise ValueError("GEMINI_API_KEY missing! Please set it as an environment variable.")
 
-GEMINI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-
-
-
+GEMINI_GENERATE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+GEMINI_EMBED_URL = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GEMINI_API_KEY}"
 
 
 # ===================================================================
@@ -52,13 +49,11 @@ def extract_text(file_path):
 
 
 # ===================================================================
-#                    IMPROVED BLOOM LEVEL DETECTION
+#                    BLOOM LEVEL DETECTION
 # ===================================================================
 
 def detect_bloom_level(question):
     q = question.lower()
-
-    # Extract first verb — strongest Bloom indicator
     tokens = re.findall(r'\b[a-z]+\b', q)
     first_word = tokens[0] if tokens else ""
 
@@ -71,17 +66,14 @@ def detect_bloom_level(question):
         "Create": ["design", "create", "develop", "propose"]
     }
 
-    # 1️⃣ Check first word
     for level, words in bloom_keywords.items():
         if first_word in words:
             return level
 
-    # 2️⃣ Check anywhere
     for level, words in bloom_keywords.items():
         if any(w in q for w in words):
             return level
 
-    # 3️⃣ Advanced fallback using heuristic detection
     if "why" in q or "reason" in q:
         return "Evaluate"
     if "how" in q:
@@ -91,16 +83,21 @@ def detect_bloom_level(question):
 
 
 # ===================================================================
-#                    MCQ PARSER (VERY STRONG)
+#                    GEMINI EMBEDDING (plain HTTP)
 # ===================================================================
 
 def _gemini_embed(texts: list) -> np.ndarray:
-    result = GEMINI_CLIENT.models.embed_content(
-        model="text-embedding-004",
-        contents=texts,
-        config=types.EmbedContentConfig(task_type="SEMANTIC_SIMILARITY")
-    )
-    return np.array([e.values for e in result.embeddings])
+    embeddings = []
+    for text in texts:
+        body = {
+            "model": "models/text-embedding-004",
+            "content": {"parts": [{"text": text}]},
+            "taskType": "SEMANTIC_SIMILARITY"
+        }
+        resp = requests.post(GEMINI_EMBED_URL, json=body, timeout=30)
+        resp.raise_for_status()
+        embeddings.append(resp.json()["embedding"]["values"])
+    return np.array(embeddings)
 
 
 def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -108,6 +105,10 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     b = b / (np.linalg.norm(b, axis=1, keepdims=True) + 1e-10)
     return b @ a
 
+
+# ===================================================================
+#                         MCQ PARSER
+# ===================================================================
 
 def parse_and_map_mcqs(raw_text, co_list):
     co_embeddings = _gemini_embed(co_list)
@@ -135,7 +136,6 @@ def parse_and_map_mcqs(raw_text, co_list):
 
         q_embed = _gemini_embed([question])[0]
         sims = _cosine_sim(q_embed, co_embeddings)
-
         best = int(sims.argmax())
 
         bloom = detect_bloom_level(question)
@@ -155,13 +155,10 @@ def parse_and_map_mcqs(raw_text, co_list):
 
 
 # ===================================================================
-#            MCQ GENERATION USING GEMINI (per CO)
+#            MCQ GENERATION USING GEMINI (plain HTTP)
 # ===================================================================
 
 def _build_co_prompt(context: str, co_description: str, num_questions: int) -> str:
-    """
-    Builds the same style prompt you used with LangChain, now as a plain string.
-    """
     return f"""
 You are an expert exam-question designer.
 
@@ -172,7 +169,7 @@ CO Description:
 
 STRICT RULES:
 - Use Bloom levels ONLY: Apply, Analyze, Evaluate.
-- Questions must clearly reflect the CO’s terminology.
+- Questions must clearly reflect the CO's terminology.
 - Do NOT generate purely theoretical/general questions.
 - Stick to the reference text context.
 - For EVERY MCQ, start with a line exactly '## MCQ'.
@@ -193,20 +190,20 @@ REFERENCE TEXT:
 
 def generate_mcqs_for_co(text, co_description, n):
     prompt = _build_co_prompt(text, co_description, n)
-
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 2048}
+    }
     try:
-        response = GEMINI_CLIENT.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(max_output_tokens=2048)
-        )
-        return response.text
+        resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
+        resp.raise_for_status()
+        return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
         raise RuntimeError(f"Gemini generation error: {e}")
 
 
 # ===================================================================
-#    PERFECTLY BALANCED, EXACT COUNT, RETRY-BASED GENERATION
+#    BALANCED, EXACT COUNT, RETRY-BASED GENERATION
 # ===================================================================
 
 def generate_balanced_mcqs(text, co_list, total):
@@ -216,10 +213,8 @@ def generate_balanced_mcqs(text, co_list, total):
 
     base = total // n
     extra = total % n
-
     all_raw = ""
 
-    # --------------- FIRST GENERATION --------------- #
     for i, co in enumerate(co_list):
         count = base + (1 if i < extra else 0)
         if count <= 0:
@@ -228,33 +223,24 @@ def generate_balanced_mcqs(text, co_list, total):
         out = generate_mcqs_for_co(text, co, count)
         all_raw += out + "\n\n"
 
-    # Parse results
     parsed = parse_and_map_mcqs(all_raw, co_list)
     print(f"First pass generated: {len(parsed)} MCQs")
 
     missing = total - len(parsed)
-
-    # --------------- RETRY LOGIC FOR MISSING MCQs --------------- #
     cycles = 0
     while missing > 0 and cycles < 3:
         cycles += 1
         print(f"Retrying... Missing = {missing}")
-
         for co in co_list:
             if missing <= 0:
                 break
-
             new_raw = generate_mcqs_for_co(text, co, 1)
             new_mcqs = parse_and_map_mcqs(new_raw, co_list)
-
-            if len(new_mcqs) > 0:
+            if new_mcqs:
                 parsed.append(new_mcqs[0])
                 missing -= 1
 
-    # Trim if extra
     parsed = parsed[:total]
-
-    # Final console print
     print("\nFinal MCQ Count:", len(parsed))
     return {
         "raw_text": "\n\n".join(m["question_block"] for m in parsed),
@@ -276,21 +262,15 @@ def save_mcqs_txt(text, folder, fname):
 
 def save_mcqs_pdf(text, folder, fname):
     os.makedirs(folder, exist_ok=True)
-
     pdf = FPDF()
     font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSans-Regular.ttf")
-
-
     pdf.add_font("Noto", "", font_path, uni=True)
     pdf.set_font("Noto", size=11)
-
     pdf.add_page()
-
     for block in text.split("## MCQ"):
         if block.strip():
             pdf.multi_cell(0, 8, block.strip())
             pdf.ln(4)
-
     path = os.path.join(folder, fname)
     pdf.output(path)
     return path
