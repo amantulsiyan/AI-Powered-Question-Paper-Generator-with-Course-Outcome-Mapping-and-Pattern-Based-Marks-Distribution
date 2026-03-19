@@ -1,6 +1,10 @@
 # app.py
 import os
+import sys
 import requests
+
+# Ensure src/ is on the path so mcq_core is always importable
+sys.path.insert(0, os.path.dirname(__file__))
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, send_file
 from werkzeug.utils import secure_filename, safe_join
@@ -9,10 +13,7 @@ import traceback
 
 load_dotenv()
 
-try:
-    from mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
-except ModuleNotFoundError:
-    from src.mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
+from mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
