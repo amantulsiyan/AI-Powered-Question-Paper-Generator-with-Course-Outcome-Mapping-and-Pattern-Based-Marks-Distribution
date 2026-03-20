@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 import requests
 import docx
 import pdfplumber
@@ -188,18 +189,25 @@ REFERENCE TEXT:
 """
 
 
-def generate_mcqs_for_co(text, co_description, n):
+def generate_mcqs_for_co(text, co_description, n, retries=3):
     prompt = _build_co_prompt(text, co_description, n)
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 2048}
     }
-    try:
-        resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
-        resp.raise_for_status()
-        return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        raise RuntimeError(f"Gemini generation error: {e}")
+    for attempt in range(retries):
+        try:
+            resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
+            if resp.status_code == 429:
+                time.sleep(10 * (attempt + 1))
+                continue
+            resp.raise_for_status()
+            return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(5)
+                continue
+            raise RuntimeError(f"Gemini generation error: {e}")
 
 
 # ===================================================================
