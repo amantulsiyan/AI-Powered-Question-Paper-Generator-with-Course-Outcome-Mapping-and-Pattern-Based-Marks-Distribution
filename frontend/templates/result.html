@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Generated MCQs</title>
-    <link rel="icon" href="/static/favicon.ico">
+    <link rel="icon" href="static/favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
@@ -24,7 +23,7 @@
         }
         h2 { font-weight: 700; margin-bottom: 25px; }
         .result-box {
-            background: rgba(10, 10, 18, 0.85);
+            background: rgba(10,10,18,0.85);
             border-radius: 14px;
             padding: 35px;
             border: 1px solid rgba(255,255,255,0.05);
@@ -43,6 +42,7 @@
             border-radius: 10px;
             transition: 0.25s ease;
             text-decoration: none !important;
+            display: inline-block;
         }
         .nice-btn:hover {
             background: linear-gradient(135deg, #e3e3e3, #ffffff);
@@ -72,7 +72,7 @@
             border-left: 3px solid rgba(255,255,255,0.5);
         }
         .mapped-question {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255,255,255,0.03);
             padding: 20px;
             margin-bottom: 15px;
             border-radius: 10px;
@@ -98,95 +98,113 @@
         .score-medium { background: #f39c12; }
         .score-low { background: #e74c3c; }
         .question-title { font-weight: 700; font-size: 20px; margin-bottom: 14px; color: #cfd0ff; }
+        hr { border-color: rgba(255,255,255,0.15); margin-top: 18px; }
     </style>
-
-    <script>
-        function revealAnswer(id) {
-            const box = document.getElementById(id);
-            box.style.display = box.style.display === "none" ? "block" : "none";
-        }
-    </script>
 </head>
 <body>
 
 <div class="container mt-5">
     <h2 class="text-center">Generated MCQs</h2>
 
-    <div class="text-center mb-4">
-        {% if txt_filename %}
-        <a class="nice-btn" href="/download/{{ txt_filename }}">Download .TXT</a>
-        {% endif %}
-        {% if pdf_filename %}
-        <a class="nice-btn" href="/download/{{ pdf_filename }}">Download .PDF</a>
-        {% endif %}
-        {% if json_filename %}
-        <a class="nice-btn" href="/download/{{ json_filename }}">Download CO JSON</a>
-        {% endif %}
-    </div>
+    <div class="text-center mb-4" id="downloadBtns"></div>
+    <div class="result-box" id="mcqBox"></div>
+    <div class="result-box" id="mappingBox"></div>
 
-    <div class="result-box">
-        <h2>All MCQs</h2>
-        {% set questions = mcqs.split('\n\n') %}
-        {% for q in questions %}
-            {% set content = q.strip() %}
-            {% if content and "Correct Answer:" in content %}
-                {% set q_number = loop.index %}
-                {% set lines = content.split('\n') %}
-                {% set ns = namespace(answer_line='') %}
-                <div class="mapped-question">
-                    <h3>MCQ {{ q_number }}</h3>
-                    {% for line in lines %}
-                        {% set clean = line.strip() %}
-                        {% if clean.startswith("Correct Answer:") %}
-                            {% set ns.answer_line = clean %}
-                        {% elif clean and not clean.isdigit() %}
-                            <div style="margin-bottom: 6px;">{{ clean }}</div>
-                        {% endif %}
-                    {% endfor %}
-                    {% if ns.answer_line %}
-                        <button class="reveal-btn" onclick="revealAnswer('ans{{ q_number }}')">Reveal Answer</button>
-                        <div id="ans{{ q_number }}" class="answer-box">{{ ns.answer_line }}</div>
-                    {% endif %}
-                    {% if not loop.last %}
-                        <hr style="border-color: rgba(255,255,255,0.15); margin-top:18px;">
-                    {% endif %}
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    {% if mapped_mcqs %}
-    <div class="result-box">
-        <h2>CO Mapping Results</h2>
-        {% for mcq in mapped_mcqs %}
-        <div class="mapped-question">
-            <h3>Question {{ loop.index }}</h3>
-            <p><strong>Question:</strong> {{ mcq.question_text }}</p>
-            <p><strong>Mapped to:</strong> {{ mcq.mapped_co }} - {{ mcq.co_description }}</p>
-            <p>
-                <strong>Bloom Level:</strong>
-                <span class="bloom-badge bloom-{{ mcq.bloom_level }}">{{ mcq.bloom_level }}</span>
-            </p>
-            <p>
-                <strong>Similarity Score:</strong>
-                <span class="similarity-score
-                    {% if mcq.similarity_score >= 0.7 %} score-high
-                    {% elif mcq.similarity_score >= 0.5 %} score-medium
-                    {% else %} score-low
-                    {% endif %}">
-                    {{ mcq.similarity_score }}
-                </span>
-            </p>
-            {% if not loop.last %}<hr>{% endif %}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="text-center">
-        <a href="/" class="nice-btn">Generate More MCQs</a>
+    <div class="text-center mt-3">
+        <a href="index.html" class="nice-btn">Generate More MCQs</a>
     </div>
 </div>
 
+<script>
+    const BACKEND_URL = "https://ai-powered-question-paper-generator-with-ew34.onrender.com";
+
+    function revealAnswer(id) {
+        const box = document.getElementById(id);
+        box.style.display = box.style.display === "none" ? "block" : "none";
+    }
+
+    function scoreClass(score) {
+        if (score >= 0.7) return "score-high";
+        if (score >= 0.5) return "score-medium";
+        return "score-low";
+    }
+
+    function renderMCQs(mcqsRaw, txtFilename, pdfFilename, jsonFilename) {
+        // Download buttons
+        const dlDiv = document.getElementById("downloadBtns");
+        dlDiv.innerHTML = `
+            <a class="nice-btn" href="${BACKEND_URL}/download/${txtFilename}">Download .TXT</a>
+            <a class="nice-btn" href="${BACKEND_URL}/download/${pdfFilename}">Download .PDF</a>
+            <a class="nice-btn" href="${BACKEND_URL}/download/${jsonFilename}">Download CO JSON</a>
+        `;
+
+        // MCQ blocks
+        const mcqBox = document.getElementById("mcqBox");
+        const blocks = mcqsRaw.split("\n\n").filter(b => b.includes("Correct Answer:"));
+        let html = "<h2>All MCQs</h2>";
+
+        blocks.forEach((block, i) => {
+            const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+            let answerLine = "";
+            let contentLines = [];
+
+            lines.forEach(line => {
+                if (line.startsWith("Correct Answer:")) answerLine = line;
+                else if (line && !/^\d+$/.test(line)) contentLines.push(line);
+            });
+
+            html += `
+                <div class="mapped-question">
+                    <h3>MCQ ${i + 1}</h3>
+                    ${contentLines.map(l => `<div style="margin-bottom:6px;">${l}</div>`).join("")}
+                    ${answerLine ? `
+                        <button class="reveal-btn" onclick="revealAnswer('ans${i}')">Reveal Answer</button>
+                        <div id="ans${i}" class="answer-box">${answerLine}</div>
+                    ` : ""}
+                    ${i < blocks.length - 1 ? "<hr>" : ""}
+                </div>`;
+        });
+
+        mcqBox.innerHTML = html;
+    }
+
+    function renderMapping(mappedMcqs) {
+        const mappingBox = document.getElementById("mappingBox");
+        let html = "<h2>CO Mapping Results</h2>";
+
+        mappedMcqs.forEach((mcq, i) => {
+            html += `
+                <div class="mapped-question">
+                    <h3>Question ${i + 1}</h3>
+                    <p><strong>Question:</strong> ${mcq.question_text}</p>
+                    <p><strong>Mapped to:</strong> ${mcq.mapped_co} - ${mcq.co_description}</p>
+                    <p><strong>Bloom Level:</strong>
+                        <span class="bloom-badge bloom-${mcq.bloom_level}">${mcq.bloom_level}</span>
+                    </p>
+                    <p><strong>Similarity Score:</strong>
+                        <span class="similarity-score ${scoreClass(mcq.similarity_score)}">
+                            ${mcq.similarity_score.toFixed(4)}
+                        </span>
+                    </p>
+                    ${i < mappedMcqs.length - 1 ? "<hr>" : ""}
+                </div>`;
+        });
+
+        mappingBox.innerHTML = html;
+    }
+
+    // Load data from sessionStorage
+    const raw = sessionStorage.getItem("mcqResult");
+    if (!raw) {
+        window.location.href = "index.html";
+    } else {
+        const data = JSON.parse(raw);
+        renderMCQs(data.mcqs_raw, data.txt_filename, data.pdf_filename, data.json_filename);
+        if (data.mapped_mcqs && data.mapped_mcqs.length > 0) {
+            renderMapping(data.mapped_mcqs);
+        }
+        sessionStorage.removeItem("mcqResult");
+    }
+</script>
 </body>
 </html>
