@@ -1,1 +1,1 @@
-web: gunicorn src.app:app --worker-class gevent --workers 1 --timeout 300
+web: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
