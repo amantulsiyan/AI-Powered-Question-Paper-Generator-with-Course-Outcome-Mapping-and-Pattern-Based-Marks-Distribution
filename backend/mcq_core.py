@@ -195,6 +195,7 @@ def generate_mcqs_for_co(text, co_description, n, retries=3):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 2048}
     }
+    last_error = None
     for attempt in range(retries):
         try:
             resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
@@ -204,10 +205,9 @@ def generate_mcqs_for_co(text, co_description, n, retries=3):
             resp.raise_for_status()
             return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
         except Exception as e:
-            if attempt < retries - 1:
-                time.sleep(5)
-                continue
-            raise RuntimeError(f"Gemini generation error: {e}")
+            last_error = e
+            time.sleep(5)
+    raise RuntimeError(f"Gemini generation error after {retries} attempts: {last_error}")
 
 
 # ===================================================================
