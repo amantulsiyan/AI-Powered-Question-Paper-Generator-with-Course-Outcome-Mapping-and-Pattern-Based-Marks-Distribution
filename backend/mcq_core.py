@@ -195,19 +195,20 @@ def generate_mcqs_for_co(text, co_description, n, retries=3):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 2048}
     }
-    last_error = None
     for attempt in range(retries):
         try:
             resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
             if resp.status_code == 429:
-                time.sleep(10 * (attempt + 1))
+                wait = 15 * (attempt + 1)
+                print(f"Rate limited, waiting {wait}s...")
+                time.sleep(wait)
                 continue
             resp.raise_for_status()
             return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
         except Exception as e:
-            last_error = e
+            print(f"Attempt {attempt+1} failed: {e}")
             time.sleep(5)
-    raise RuntimeError(f"Gemini generation error after {retries} attempts: {last_error}")
+    raise RuntimeError("Gemini rate limit: please wait a minute and try again with fewer questions.")
 
 
 # ===================================================================
