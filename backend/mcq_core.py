@@ -14,11 +14,15 @@ from fpdf import FPDF
 # ===================================================================
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY missing! Please set it as an environment variable.")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY missing! Please set it as an environment variable.")
 
-GEMINI_GENERATE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 GEMINI_EMBED_URL = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GEMINI_API_KEY}"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
 # ===================================================================
@@ -89,7 +93,7 @@ def detect_bloom_level(question):
 
 def _gemini_embed(texts: list) -> np.ndarray:
     embeddings = []
-    for text in texts:
+    for i, text in enumerate(texts):
         body = {
             "model": "models/text-embedding-004",
             "content": {"parts": [{"text": text}]},
@@ -98,6 +102,8 @@ def _gemini_embed(texts: list) -> np.ndarray:
         resp = requests.post(GEMINI_EMBED_URL, json=body, timeout=30)
         resp.raise_for_status()
         embeddings.append(resp.json()["embedding"]["values"])
+        if i < len(texts) - 1:
+            time.sleep(1)
     return np.array(embeddings)
 
 
@@ -115,34 +121,38 @@ def parse_and_map_mcqs(raw_text, co_list):
     co_embeddings = _gemini_embed(co_list)
 
     mcq_blocks = raw_text.split("## MCQ")
-    results = []
+    parsed_blocks = []
 
     for block in mcq_blocks:
         if not block.strip():
             continue
-
         q_match = re.search(r"Question:\s*(.*)", block)
         if not q_match:
             continue
         question = q_match.group(1).strip()
-
         options = {}
         for opt in ["A", "B", "C", "D"]:
             m = re.search(rf"{opt}\)\s*(.*)", block)
             if m:
                 options[opt] = m.group(1).strip()
-
         c_match = re.search(r"Correct Answer:\s*([A-D])", block)
         correct = c_match.group(1).upper() if c_match else "Unknown"
+        parsed_blocks.append((block.strip(), question, options, correct))
 
-        q_embed = _gemini_embed([question])[0]
-        sims = _cosine_sim(q_embed, co_embeddings)
+    if not parsed_blocks:
+        return []
+
+    # Batch embed all questions in one API call
+    all_questions = [q for _, q, _, _ in parsed_blocks]
+    q_embeddings = _gemini_embed(all_questions)
+
+    results = []
+    for idx, (block, question, options, correct) in enumerate(parsed_blocks):
+        sims = _cosine_sim(q_embeddings[idx], co_embeddings)
         best = int(sims.argmax())
-
         bloom = detect_bloom_level(question)
-
         results.append({
-            "question_block": block.strip(),
+            "question_block": block,
             "question_text": question,
             "options": options,
             "correct_answer": correct,
@@ -156,7 +166,7 @@ def parse_and_map_mcqs(raw_text, co_list):
 
 
 # ===================================================================
-#            MCQ GENERATION USING GEMINI (plain HTTP)
+#            MCQ GENERATION USING GROQ (plain HTTP)
 # ===================================================================
 
 def _build_co_prompt(context: str, co_description: str, num_questions: int) -> str:
@@ -192,23 +202,29 @@ REFERENCE TEXT:
 def generate_mcqs_for_co(text, co_description, n, retries=3):
     prompt = _build_co_prompt(text, co_description, n)
     body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 2048}
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 2048,
+        "temperature": 0.7
+    }
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
     for attempt in range(retries):
         try:
-            resp = requests.post(GEMINI_GENERATE_URL, json=body, timeout=120)
+            resp = requests.post(GROQ_API_URL, json=body, headers=headers, timeout=120)
             if resp.status_code == 429:
-                wait = 15 * (attempt + 1)
+                wait = 10 * (attempt + 1)
                 print(f"Rate limited, waiting {wait}s...")
                 time.sleep(wait)
                 continue
             resp.raise_for_status()
-            return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return resp.json()["choices"][0]["message"]["content"]
         except Exception as e:
             print(f"Attempt {attempt+1} failed: {e}")
-            time.sleep(5)
-    raise RuntimeError("Gemini rate limit: please wait a minute and try again with fewer questions.")
+            time.sleep(3)
+    raise RuntimeError("Groq rate limit: please wait and try again with fewer questions.")
 
 
 # ===================================================================
@@ -231,6 +247,8 @@ def generate_balanced_mcqs(text, co_list, total):
         print(f"Generating {count} MCQs for CO{i+1}")
         out = generate_mcqs_for_co(text, co, count)
         all_raw += out + "\n\n"
+        if i < len(co_list) - 1:
+            time.sleep(5)
 
     parsed = parse_and_map_mcqs(all_raw, co_list)
     print(f"First pass generated: {len(parsed)} MCQs")
