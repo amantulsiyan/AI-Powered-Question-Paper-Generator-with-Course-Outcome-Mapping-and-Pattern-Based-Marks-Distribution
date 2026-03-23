@@ -5,7 +5,6 @@ import time
 import requests
 import docx
 import pdfplumber
-import numpy as np
 from fpdf import FPDF
 
 
@@ -13,15 +12,10 @@ from fpdf import FPDF
 #                      API & LLM INITIALIZATION
 # ===================================================================
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY missing! Please set it as an environment variable.")
 if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY missing! Please set it as an environment variable.")
 
-GEMINI_EMBED_URL = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GEMINI_API_KEY}"
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
@@ -88,23 +82,15 @@ def detect_bloom_level(question):
 
 
 # ===================================================================
-#                    GEMINI EMBEDDING (plain HTTP)
+#                    CO MAPPING (keyword-based, no API)
 # ===================================================================
 
-def _gemini_embed(texts: list) -> np.ndarray:
-    embeddings = []
-    for i, text in enumerate(texts):
-        body = {
-            "model": "models/text-embedding-004",
-            "content": {"parts": [{"text": text}]},
-            "taskType": "SEMANTIC_SIMILARITY"
-        }
-        resp = requests.post(GEMINI_EMBED_URL, json=body, timeout=30)
-        resp.raise_for_status()
-        embeddings.append(resp.json()["embedding"]["values"])
-        if i < len(texts) - 1:
-            time.sleep(1)
-    return np.array(embeddings)
+def _keyword_similarity(text1: str, text2: str) -> float:
+    words1 = set(re.findall(r'\b[a-z]+\b', text1.lower()))
+    words2 = set(re.findall(r'\b[a-z]+\b', text2.lower()))
+    if not words1 or not words2:
+        return 0.0
+    return len(words1 & words2) / len(words1 | words2)
 
 
 def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -118,8 +104,6 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 # ===================================================================
 
 def parse_and_map_mcqs(raw_text, co_list):
-    co_embeddings = _gemini_embed(co_list)
-
     mcq_blocks = raw_text.split("## MCQ")
     parsed_blocks = []
 
@@ -142,14 +126,10 @@ def parse_and_map_mcqs(raw_text, co_list):
     if not parsed_blocks:
         return []
 
-    # Batch embed all questions in one API call
-    all_questions = [q for _, q, _, _ in parsed_blocks]
-    q_embeddings = _gemini_embed(all_questions)
-
     results = []
-    for idx, (block, question, options, correct) in enumerate(parsed_blocks):
-        sims = _cosine_sim(q_embeddings[idx], co_embeddings)
-        best = int(sims.argmax())
+    for block, question, options, correct in parsed_blocks:
+        sims = [_keyword_similarity(question, co) for co in co_list]
+    best = int(max(range(len(sims)), key=lambda i: sims[i]))
         bloom = detect_bloom_level(question)
         results.append({
             "question_block": block,
@@ -158,7 +138,7 @@ def parse_and_map_mcqs(raw_text, co_list):
             "correct_answer": correct,
             "mapped_co": f"CO{best+1}",
             "co_description": co_list[best],
-            "similarity_score": float(sims[best]),
+            "similarity_score": round(sims[best], 4),
             "bloom_level": bloom
         })
 
