@@ -275,32 +275,33 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 
 
 def save_mcqs_pdf(mapped_questions, folder, fname):
-    # Simplified: Use basic FPDF with minimal formatting to avoid bugs
+    # Use conservative width to ensure text stays within page bounds
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF(format='A4')
     pdf.add_page()
     pdf.set_font("Helvetica", size=10)
     
-    # Use 170mm width (A4 is 210mm, leaving 20mm margins on each side)
-    w = 170
+    # Use 150mm width (very conservative for A4)
+    w = 150
     
     for i, mcq in enumerate(mapped_questions, 1):
         pdf.set_font("Helvetica", "B", 10)
         pdf.cell(w, 6, f"Question {i}:", ln=True)
         pdf.set_font("Helvetica", "", 10)
         
-        # Split long text manually
-        question_text = mcq['question_text']
-        pdf.multi_cell(w, 6, question_text)
+        # Question text
+        pdf.multi_cell(w, 6, mcq['question_text'])
         pdf.ln(2)
         
+        # Options
         for opt, text in mcq['options'].items():
             pdf.multi_cell(w, 6, f"{opt}) {text}")
         pdf.ln(2)
         
+        # CO and Bloom
         pdf.set_font("Helvetica", "I", 9)
         pdf.multi_cell(w, 6, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.cell(w, 6, f"Bloom Level: {mcq['bloom_level']}", ln=True)
+        pdf.multi_cell(w, 6, f"Bloom Level: {mcq['bloom_level']}")
         pdf.set_font("Helvetica", "", 10)
         pdf.ln(4)
     
