@@ -93,12 +93,6 @@ def _keyword_similarity(text1: str, text2: str) -> float:
     return len(words1 & words2) / len(words1 | words2)
 
 
-def _cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    a = a / (np.linalg.norm(a, keepdims=True) + 1e-10)
-    b = b / (np.linalg.norm(b, axis=1, keepdims=True) + 1e-10)
-    return b @ a
-
-
 # ===================================================================
 #                         MCQ PARSER
 # ===================================================================
@@ -129,7 +123,7 @@ def parse_and_map_mcqs(raw_text, co_list):
     results = []
     for block, question, options, correct in parsed_blocks:
         sims = [_keyword_similarity(question, co) for co in co_list]
-    best = int(max(range(len(sims)), key=lambda i: sims[i]))
+        best = int(max(range(len(sims)), key=lambda i: sims[i]))
         bloom = detect_bloom_level(question)
         results.append({
             "question_block": block,
