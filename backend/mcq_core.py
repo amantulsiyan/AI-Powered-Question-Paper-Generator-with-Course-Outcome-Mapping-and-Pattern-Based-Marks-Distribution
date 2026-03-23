@@ -263,8 +263,14 @@ def save_mcqs_txt(mapped_questions, folder, fname):
                 f.write(f"{opt}) {text}\n")
             f.write(f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}\n")
             f.write(f"Bloom Level: {mcq['bloom_level']}\n")
-            f.write(f"\n<ans{i}>={mcq['correct_answer']}\n")
             f.write("\n" + "="*60 + "\n\n")
+        
+        # Answers section at the end
+        f.write("\n" + "="*60 + "\n")
+        f.write("ANSWERS\n")
+        f.write("="*60 + "\n\n")
+        for i, mcq in enumerate(mapped_questions, 1):
+            f.write(f"Answer_{i}:{mcq['correct_answer']}\n")
     return path
 
 
@@ -288,9 +294,16 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
         pdf.ln(1)
         pdf.multi_cell(w, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
         pdf.multi_cell(w, 5, f"Bloom Level: {mcq['bloom_level']}")
-        pdf.ln(1)
-        pdf.multi_cell(w, 5, f"<ans{i}>={mcq['correct_answer']}")
         pdf.ln(3)
+    
+    # Answers section at the end
+    pdf.ln(5)
+    pdf.multi_cell(w, 5, "="*60)
+    pdf.multi_cell(w, 5, "ANSWERS")
+    pdf.multi_cell(w, 5, "="*60)
+    pdf.ln(2)
+    for i, mcq in enumerate(mapped_questions, 1):
+        pdf.multi_cell(w, 5, f"Answer_{i}:{mcq['correct_answer']}")
     
     path = os.path.join(folder, fname)
     pdf.output(path)
