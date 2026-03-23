@@ -125,6 +125,11 @@
         </div>
 
         <div class="mb-3">
+            <label class="form-label">Topic Name (optional):</label>
+            <input class="form-control" type="text" id="topic_name" placeholder="e.g., Data_Structures_Unit3">
+        </div>
+
+        <div class="mb-3">
             <label class="form-label">Total Number of MCQs:</label>
             <input class="form-control" type="number" id="total_questions" min="1" value="10">
         </div>
@@ -146,6 +151,7 @@
     async function submitForm() {
         const urlInput = document.getElementById("url_input").value.trim();
         const fileInput = document.getElementById("file").files[0];
+        const topicName = document.getElementById("topic_name").value.trim();
         const totalQuestions = document.getElementById("total_questions").value;
         const coList = document.getElementById("co_list").value.trim();
         const errorBox = document.getElementById("errorBox");
@@ -171,6 +177,7 @@
 
         const formData = new FormData();
         formData.append("url_input", urlInput);
+        formData.append("topic_name", topicName);
         formData.append("total_questions", totalQuestions);
         formData.append("co_list", coList);
         if (fileInput) formData.append("file", fileInput);

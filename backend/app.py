@@ -66,6 +66,7 @@ async def generate_mcqs(
     url_input: str = Form(default=""),
     total_questions: int = Form(...),
     co_list: str = Form(...),
+    topic_name: str = Form(default=""),
     file: UploadFile = File(default=None),
 ):
     try:
@@ -74,7 +75,7 @@ async def generate_mcqs(
                 text = extract_text_from_url(url_input.strip())
             except Exception as e:
                 return error(f"Error fetching URL: {e}")
-            base_name = "generated_from_url"
+            base_name = topic_name.strip() if topic_name.strip() else "generated_from_url"
         else:
             if not file or not file.filename:
                 return error("No file uploaded and no URL provided.")
@@ -91,7 +92,7 @@ async def generate_mcqs(
             except Exception as e:
                 return error(f"Error extracting text: {e}")
 
-            base_name = filename.rsplit(".", 1)[0]
+            base_name = topic_name.strip() if topic_name.strip() else filename.rsplit(".", 1)[0]
 
         co_entries = [line.strip() for line in co_list.split("\n") if line.strip()]
         if not co_entries or total_questions <= 0:
@@ -108,9 +109,13 @@ async def generate_mcqs(
                 return error("AI rate limit reached. Please wait a minute and try again.", 429)
             return error("Error generating MCQs. Please try again or reduce question count.", 500)
 
-        txt_name = f"generated_mcqs_{base_name}.txt"
-        pdf_name = f"generated_mcqs_{base_name}.pdf"
-        json_name = f"mapped_mcqs_{base_name}.json"
+        from datetime import datetime
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_base = secure_filename(base_name)
+        
+        txt_name = f"{safe_base}_{date_str}.txt"
+        pdf_name = f"{safe_base}_{date_str}.pdf"
+        json_name = f"{safe_base}_{date_str}.json"
 
         save_mcqs_txt(mapped_mcqs, RESULTS_FOLDER, txt_name)
         save_mcqs_pdf(mapped_mcqs, RESULTS_FOLDER, pdf_name)
