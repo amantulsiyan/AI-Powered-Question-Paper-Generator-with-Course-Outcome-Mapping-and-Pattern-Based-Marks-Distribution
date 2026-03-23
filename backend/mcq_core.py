@@ -253,25 +253,43 @@ def generate_balanced_mcqs(text, co_list, total):
 #                              SAVERS
 # ===================================================================
 
-def save_mcqs_txt(text, folder, fname):
+def save_mcqs_txt(mapped_questions, folder, fname):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, fname)
     with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
+        for i, mcq in enumerate(mapped_questions, 1):
+            f.write(f"Question {i}: {mcq['question_text']}\n")
+            for opt, text in mcq['options'].items():
+                f.write(f"{opt}) {text}\n")
+            f.write(f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}\n")
+            f.write(f"Bloom Level: {mcq['bloom_level']}\n")
+            f.write(f"\n<ans{i}>={mcq['correct_answer']}\n")
+            f.write("\n" + "="*60 + "\n\n")
     return path
 
 
-def save_mcqs_pdf(text, folder, fname):
+def save_mcqs_pdf(mapped_questions, folder, fname):
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
     font_path = os.path.join(os.path.dirname(__file__), "fonts", "NotoSans-Regular.ttf")
     pdf.add_font("Noto", "", font_path, uni=True)
     pdf.set_font("Noto", size=11)
     pdf.add_page()
-    for block in text.split("## MCQ"):
-        if block.strip():
-            pdf.multi_cell(0, 8, block.strip())
-            pdf.ln(4)
+    
+    for i, mcq in enumerate(mapped_questions, 1):
+        pdf.multi_cell(0, 8, f"Question {i}: {mcq['question_text']}")
+        pdf.ln(2)
+        for opt, text in mcq['options'].items():
+            pdf.multi_cell(0, 8, f"{opt}) {text}")
+        pdf.ln(2)
+        pdf.multi_cell(0, 8, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
+        pdf.multi_cell(0, 8, f"Bloom Level: {mcq['bloom_level']}")
+        pdf.ln(2)
+        pdf.multi_cell(0, 8, f"<ans{i}>={mcq['correct_answer']}")
+        pdf.ln(6)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+    
     path = os.path.join(folder, fname)
     pdf.output(path)
     return path

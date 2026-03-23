@@ -112,8 +112,8 @@ async def generate_mcqs(
         pdf_name = f"generated_mcqs_{base_name}.pdf"
         json_name = f"mapped_mcqs_{base_name}.json"
 
-        save_mcqs_txt(mcqs_raw, RESULTS_FOLDER, txt_name)
-        save_mcqs_pdf(mcqs_raw, RESULTS_FOLDER, pdf_name)
+        save_mcqs_txt(mapped_mcqs, RESULTS_FOLDER, txt_name)
+        save_mcqs_pdf(mapped_mcqs, RESULTS_FOLDER, pdf_name)
         with open(os.path.join(RESULTS_FOLDER, json_name), "w", encoding="utf-8") as f:
             json.dump(mapped_mcqs, f, indent=4)
 
