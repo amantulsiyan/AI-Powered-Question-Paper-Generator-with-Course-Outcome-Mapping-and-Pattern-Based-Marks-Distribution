@@ -125,9 +125,9 @@ async def generate_mcqs(
             "json_filename": json_name,
         })
 
-    except Exception:
+    except Exception as e:
         traceback.print_exc()
-        return error("An unexpected error occurred.", 500)
+        return error(f"Unexpected error: {str(e)}", 500)
 
 
 @app.get("/download/{filename}")
