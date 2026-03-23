@@ -269,6 +269,7 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 
 
 def save_mcqs_pdf(mapped_questions, folder, fname):
+    # Fixed: PDF rendering with proper page width calculation
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
