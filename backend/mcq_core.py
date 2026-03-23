@@ -269,24 +269,28 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 
 
 def save_mcqs_pdf(mapped_questions, folder, fname):
-    # Fixed: PDF rendering with proper page width calculation
+    # Fixed: PDF rendering with explicit width calculation
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_margins(left=10, top=10, right=10)
+    pdf.set_auto_page_break(auto=True, margin=10)
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Helvetica", size=10)
+    
+    # Calculate usable width: page_width - left_margin - right_margin
+    w = pdf.w - 20  # 210mm - 20mm = 190mm for A4
     
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.multi_cell(0, 6, f"Question {i}: {mcq['question_text']}")
+        pdf.multi_cell(w, 5, f"Question {i}: {mcq['question_text']}")
         pdf.ln(1)
         for opt, text in mcq['options'].items():
-            pdf.multi_cell(0, 6, f"{opt}) {text}")
+            pdf.multi_cell(w, 5, f"{opt}) {text}")
         pdf.ln(1)
-        pdf.multi_cell(0, 6, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.multi_cell(0, 6, f"Bloom Level: {mcq['bloom_level']}")
+        pdf.multi_cell(w, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
+        pdf.multi_cell(w, 5, f"Bloom Level: {mcq['bloom_level']}")
         pdf.ln(1)
-        pdf.multi_cell(0, 6, f"<ans{i}>={mcq['correct_answer']}")
-        pdf.ln(4)
+        pdf.multi_cell(w, 5, f"<ans{i}>={mcq['correct_answer']}")
+        pdf.ln(3)
     
     path = os.path.join(folder, fname)
     pdf.output(path)
