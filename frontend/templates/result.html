@@ -142,6 +142,7 @@
         const mcqBox = document.getElementById("mcqBox");
         const blocks = mcqsRaw.split("\n\n").filter(b => b.includes("Correct Answer:"));
         let html = "<h2>All MCQs</h2>";
+        let answers = [];
 
         blocks.forEach((block, i) => {
             const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
@@ -149,7 +150,11 @@
             let contentLines = [];
 
             lines.forEach(line => {
-                if (line.startsWith("Correct Answer:")) answerLine = line;
+                if (line.startsWith("Correct Answer:")) {
+                    answerLine = line;
+                    const match = line.match(/Correct Answer:\s*([A-D])/i);
+                    if (match) answers.push(match[1]);
+                }
                 else if (line && !/^\d+$/.test(line)) contentLines.push(line);
             });
 
@@ -157,13 +162,21 @@
                 <div class="mapped-question">
                     <h3>MCQ ${i + 1}</h3>
                     ${contentLines.map(l => `<div style="margin-bottom:6px;">${l}</div>`).join("")}
-                    ${answerLine ? `
-                        <button class="reveal-btn" onclick="revealAnswer('ans${i}')">Reveal Answer</button>
-                        <div id="ans${i}" class="answer-box">${answerLine}</div>
-                    ` : ""}
                     ${i < blocks.length - 1 ? "<hr>" : ""}
                 </div>`;
         });
+
+        // Add answers section at the end
+        html += `
+            <div class="mapped-question" style="border-left: 4px solid #2ecc71; margin-top: 30px;">
+                <h3 style="color: #2ecc71;">ANSWERS</h3>
+                <div style="font-family: monospace; font-size: 14px; line-height: 1.8;">`;
+        
+        answers.forEach((ans, i) => {
+            html += `<div>Answer_${i + 1}:${ans}</div>`;
+        });
+        
+        html += `</div></div>`;
 
         mcqBox.innerHTML = html;
     }
