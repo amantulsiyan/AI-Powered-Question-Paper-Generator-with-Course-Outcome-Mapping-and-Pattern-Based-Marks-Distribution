@@ -282,22 +282,23 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Helvetica", size=9)
+    w = pdf.epw
     
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.multi_cell(0, 5, f"Question {i}: {mcq['question_text']}")
+        pdf.multi_cell(w, 5, f"Question {i}: {mcq['question_text']}")
         pdf.ln(1)
         for opt, text in mcq['options'].items():
-            pdf.multi_cell(0, 5, f"{opt}) {text}")
+            pdf.multi_cell(w, 5, f"{opt}) {text}")
         pdf.ln(1)
-        pdf.multi_cell(0, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.multi_cell(0, 5, f"Bloom Level: {mcq['bloom_level']}")
+        pdf.multi_cell(w, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
+        pdf.multi_cell(w, 5, f"Bloom Level: {mcq['bloom_level']}")
         pdf.ln(3)
     
     pdf.ln(3)
-    pdf.cell(0, 5, "ANSWERS", ln=True)
+    pdf.cell(w, 5, "ANSWERS", ln=True)
     pdf.ln(1)
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.cell(0, 5, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
+        pdf.cell(w, 5, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
     
     path = os.path.join(folder, fname)
     pdf.output(path)
