@@ -110,12 +110,12 @@ async def generate_mcqs(
             return error("Error generating MCQs. Please try again or reduce question count.", 500)
 
         from datetime import datetime
-        date_str = datetime.now().strftime("%Y%m%d")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_base = secure_filename(base_name)
         
-        txt_name = f"{safe_base}_{date_str}.txt"
-        pdf_name = f"{safe_base}_{date_str}.pdf"
-        json_name = f"{safe_base}_{date_str}.json"
+        txt_name = f"{safe_base}_{timestamp}.txt"
+        pdf_name = f"{safe_base}_{timestamp}.pdf"
+        json_name = f"{safe_base}_{timestamp}.json"
 
         save_mcqs_txt(mapped_mcqs, RESULTS_FOLDER, txt_name)
         save_mcqs_pdf(mapped_mcqs, RESULTS_FOLDER, pdf_name)

@@ -275,55 +275,29 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 
 
 def save_mcqs_pdf(mapped_questions, folder, fname):
-    # Ultra-conservative approach with explicit positioning
     os.makedirs(folder, exist_ok=True)
-    pdf = FPDF(format='A4', unit='mm')
+    pdf = FPDF()
+    pdf.set_left_margin(20)
+    pdf.set_right_margin(20)
     pdf.add_page()
-    pdf.set_left_margin(15)
-    pdf.set_right_margin(15)
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Helvetica", size=9)
-    
-    # Calculate safe width: 210mm (A4) - 30mm (margins) = 180mm
-    # But use even smaller to be safe
-    safe_width = 180
+    pdf.set_font("Arial", size=10)
+    safe_width = 0
     
     for i, mcq in enumerate(mapped_questions, 1):
-        # Reset X position to left margin
-        pdf.set_x(15)
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(safe_width, 5, f"Question {i}:", ln=True)
-        
-        pdf.set_x(15)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.multi_cell(safe_width, 5, mcq['question_text'])
-        pdf.ln(1)
-        
-        # Options
+        pdf.multi_cell(safe_width, 6, f"Question {i}: {mcq['question_text']}")
+        pdf.ln(2)
         for opt, text in mcq['options'].items():
-            pdf.set_x(15)
-            pdf.multi_cell(safe_width, 5, f"{opt}) {text}")
-        pdf.ln(1)
-        
-        # CO and Bloom
-        pdf.set_x(15)
-        pdf.set_font("Helvetica", "I", 8)
-        pdf.multi_cell(safe_width, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.set_x(15)
-        pdf.multi_cell(safe_width, 5, f"Bloom Level: {mcq['bloom_level']}")
-        pdf.set_font("Helvetica", "", 9)
-        pdf.ln(3)
+            pdf.multi_cell(safe_width, 6, f"{opt}) {text}")
+        pdf.ln(2)
+        pdf.multi_cell(safe_width, 6, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
+        pdf.multi_cell(safe_width, 6, f"Bloom Level: {mcq['bloom_level']}")
+        pdf.ln(4)
     
-    # Answers section
-    pdf.ln(3)
-    pdf.set_x(15)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(safe_width, 5, "ANSWERS", align="C", ln=True)
+    pdf.ln(4)
+    pdf.cell(safe_width, 6, "ANSWERS", ln=True)
     pdf.ln(2)
-    pdf.set_font("Helvetica", "", 9)
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.set_x(15)
-        pdf.cell(safe_width, 5, f"Answer_{i}:{mcq['correct_answer']}", ln=True)
+        pdf.cell(safe_width, 6, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
     
     path = os.path.join(folder, fname)
     pdf.output(path)
