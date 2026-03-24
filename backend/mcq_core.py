@@ -280,24 +280,26 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
     pdf.set_left_margin(20)
     pdf.set_right_margin(20)
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
-    safe_width = 0
+    pdf.set_font("Helvetica", size=10)
+    
+    # Calculate effective width: page width - left margin - right margin
+    effective_width = pdf.w - pdf.l_margin - pdf.r_margin
     
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.multi_cell(safe_width, 6, f"Question {i}: {mcq['question_text']}")
+        pdf.multi_cell(effective_width, 6, f"Question {i}: {mcq['question_text']}")
         pdf.ln(2)
         for opt, text in mcq['options'].items():
-            pdf.multi_cell(safe_width, 6, f"{opt}) {text}")
+            pdf.multi_cell(effective_width, 6, f"{opt}) {text}")
         pdf.ln(2)
-        pdf.multi_cell(safe_width, 6, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.multi_cell(safe_width, 6, f"Bloom Level: {mcq['bloom_level']}")
+        pdf.multi_cell(effective_width, 6, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
+        pdf.multi_cell(effective_width, 6, f"Bloom Level: {mcq['bloom_level']}")
         pdf.ln(4)
     
     pdf.ln(4)
-    pdf.cell(safe_width, 6, "ANSWERS", ln=True)
+    pdf.cell(effective_width, 6, "ANSWERS", ln=True)
     pdf.ln(2)
     for i, mcq in enumerate(mapped_questions, 1):
-        pdf.cell(safe_width, 6, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
+        pdf.cell(effective_width, 6, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
     
     path = os.path.join(folder, fname)
     pdf.output(path)
