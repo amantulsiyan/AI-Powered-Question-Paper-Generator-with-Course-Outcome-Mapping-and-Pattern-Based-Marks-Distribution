@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import time
 import requests
 import docx
@@ -68,21 +67,18 @@ def detect_bloom_level(question):
     for level, words in bloom_keywords.items():
         if first_word in words:
             return level
-
     for level, words in bloom_keywords.items():
         if any(w in q for w in words):
             return level
-
     if "why" in q or "reason" in q:
         return "Evaluate"
     if "how" in q:
         return "Analyze"
-
     return "Unclassified"
 
 
 # ===================================================================
-#                    CO MAPPING (keyword-based, no API)
+#                    CO MAPPING (keyword-based)
 # ===================================================================
 
 def _keyword_similarity(text1: str, text2: str) -> float:
@@ -94,10 +90,31 @@ def _keyword_similarity(text1: str, text2: str) -> float:
 
 
 # ===================================================================
-#                         MCQ PARSER  (FIXED)
+#                     MCQ PARSER  (FULLY FIXED)
 # ===================================================================
 
-def parse_and_map_mcqs(raw_text, co_list):
+def _extract_option(block: str, opt: str, next_opt) -> str:
+    """
+    Extract the full text of option `opt` from a raw MCQ block.
+    Captures everything between 'X)' and the next option label
+    or 'Correct Answer:', then collapses all internal whitespace.
+    """
+    if next_opt:
+        stop = rf"(?=\s*{next_opt}\)\s|\s*Correct Answer:)"
+    else:
+        stop = rf"(?=\s*Correct Answer:)"
+
+    pattern = rf"{opt}\)\s*(.*?){stop}"
+    m = re.search(pattern, block, re.DOTALL | re.IGNORECASE)
+    if not m:
+        return ""
+    return " ".join(m.group(1).split())          # flatten any newlines
+
+
+def parse_and_map_mcqs(raw_text: str, co_list: list) -> list:
+    # Normalise all line-endings first
+    raw_text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+
     mcq_blocks = raw_text.split("## MCQ")
     parsed_blocks = []
 
@@ -105,27 +122,23 @@ def parse_and_map_mcqs(raw_text, co_list):
         if not block.strip():
             continue
 
-        q_match = re.search(r"Question:\s*(.*)", block)
+        # ---- Question (capture up to the first option label) ----
+        q_match = re.search(r"Question:\s*(.*?)(?=\n\s*A\))", block, re.DOTALL)
         if not q_match:
             continue
-        question = q_match.group(1).strip()
+        question = " ".join(q_match.group(1).strip().split())
 
-        # --- FIX: capture full multi-line option text ---
-        options = {}
+        # ---- Options (robust full-text capture) ----
         opt_labels = ["A", "B", "C", "D"]
+        options = {}
         for i, opt in enumerate(opt_labels):
-            # lookahead: stop at the next option label or at "Correct Answer:"
-            next_boundary = opt_labels[i + 1] if i + 1 < len(opt_labels) else None
-            if next_boundary:
-                pattern = rf"{opt}\)\s*(.*?)(?=\n{next_boundary}\)|\nCorrect Answer:)"
-            else:
-                pattern = rf"{opt}\)\s*(.*?)(?=\nCorrect Answer:)"
-            m = re.search(pattern, block, re.DOTALL)
-            if m:
-                # collapse any mid-option line breaks into a single space
-                options[opt] = " ".join(m.group(1).strip().split())
+            next_opt = opt_labels[i + 1] if i + 1 < len(opt_labels) else None
+            text = _extract_option(block, opt, next_opt)
+            if text:
+                options[opt] = text
 
-        c_match = re.search(r"Correct Answer:\s*([A-D])", block)
+        # ---- Correct answer ----
+        c_match = re.search(r"Correct Answer:\s*([A-D])", block, re.IGNORECASE)
         correct = c_match.group(1).upper() if c_match else "Unknown"
 
         parsed_blocks.append((block.strip(), question, options, correct))
@@ -139,14 +152,14 @@ def parse_and_map_mcqs(raw_text, co_list):
         best = int(max(range(len(sims)), key=lambda i: sims[i]))
         bloom = detect_bloom_level(question)
         results.append({
-            "question_block": block,
-            "question_text":  question,
-            "options":        options,
-            "correct_answer": correct,
-            "mapped_co":      f"CO{best+1}",
-            "co_description": co_list[best],
+            "question_block":   block,
+            "question_text":    question,
+            "options":          options,
+            "correct_answer":   correct,
+            "mapped_co":        f"CO{best + 1}",
+            "co_description":   co_list[best],
             "similarity_score": round(sims[best], 4),
-            "bloom_level":    bloom
+            "bloom_level":      bloom,
         })
 
     return results
@@ -170,15 +183,17 @@ STRICT RULES:
 - Questions must clearly reflect the CO's terminology.
 - Do NOT generate purely theoretical/general questions.
 - Stick to the reference text context.
-- For EVERY MCQ, start with a line exactly '## MCQ'.
-- Each MCQ MUST follow EXACT format (each option on its OWN single line, no line breaks inside an option):
+- Start every MCQ with exactly '## MCQ' on its own line.
+- CRITICAL: EACH OPTION (A, B, C, D) MUST FIT ON A SINGLE LINE.
+  Do NOT insert any line break or newline inside an option's text.
+- Follow EXACTLY this format and nothing else:
 
 ## MCQ
-Question: <question statement>
-A) <option text on one line>
-B) <option text on one line>
-C) <option text on one line>
-D) <option text on one line>
+Question: <question statement on one line>
+A) <full option text on one single line, no newlines>
+B) <full option text on one single line, no newlines>
+C) <full option text on one single line, no newlines>
+D) <full option text on one single line, no newlines>
 Correct Answer: <A/B/C/D>
 
 REFERENCE TEXT:
@@ -192,11 +207,11 @@ def generate_mcqs_for_co(text, co_description, n, retries=3):
         "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 2048,
-        "temperature": 0.7
+        "temperature": 0.7,
     }
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     for attempt in range(retries):
         try:
@@ -209,7 +224,7 @@ def generate_mcqs_for_co(text, co_description, n, retries=3):
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"Attempt {attempt+1} failed: {e}")
+            print(f"Attempt {attempt + 1} failed: {e}")
             time.sleep(3)
     raise RuntimeError("Groq rate limit: please wait and try again with fewer questions.")
 
@@ -231,7 +246,7 @@ def generate_balanced_mcqs(text, co_list, total):
         count = base + (1 if i < extra else 0)
         if count <= 0:
             continue
-        print(f"Generating {count} MCQs for CO{i+1}")
+        print(f"Generating {count} MCQs for CO{i + 1}")
         out = generate_mcqs_for_co(text, co, count)
         all_raw += out + "\n\n"
         if i < len(co_list) - 1:
@@ -257,8 +272,8 @@ def generate_balanced_mcqs(text, co_list, total):
     parsed = parsed[:total]
     print("\nFinal MCQ Count:", len(parsed))
     return {
-        "raw_text":        "\n\n".join(m["question_block"] for m in parsed),
-        "mapped_questions": parsed
+        "raw_text":         "\n\n".join(m["question_block"] for m in parsed),
+        "mapped_questions": parsed,
     }
 
 
@@ -272,13 +287,14 @@ def save_mcqs_txt(mapped_questions, folder, fname):
     with open(path, "w", encoding="utf-8") as f:
         for i, mcq in enumerate(mapped_questions, 1):
             f.write(f"Question {i}: {mcq['question_text']}\n")
-            for opt, text in mcq['options'].items():
-                f.write(f"{opt}) {text}\n")
+            for opt in ["A", "B", "C", "D"]:
+                opt_text = mcq["options"].get(opt, "")
+                if opt_text:
+                    f.write(f"{opt}) {opt_text}\n")
             f.write(f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}\n")
             f.write(f"Bloom Level: {mcq['bloom_level']}\n")
             f.write("\n" + "=" * 60 + "\n\n")
 
-        # Answers section at the end
         f.write("\n" + "=" * 60 + "\n")
         f.write("ANSWERS\n")
         f.write("=" * 60 + "\n\n")
@@ -289,34 +305,47 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 
 def save_mcqs_pdf(mapped_questions, folder, fname):
     os.makedirs(folder, exist_ok=True)
+
     pdf = FPDF()
     pdf.set_left_margin(15)
     pdf.set_right_margin(15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Helvetica", size=9)
-    w = pdf.epw
+    w = pdf.epw   # effective page width (accounts for both margins)
 
     for i, mcq in enumerate(mapped_questions, 1):
-        # Question
-        pdf.multi_cell(w, 5, f"Question {i}: {mcq['question_text']}")
+
+        # ---- Question number + text ----
+        pdf.set_font("Helvetica", style="B", size=9)
+        pdf.multi_cell(w, 5, f"Q{i}.", ln=True)
+        pdf.set_font("Helvetica", size=9)
+        pdf.multi_cell(w, 5, mcq["question_text"], ln=True)
         pdf.ln(1)
 
-        # Options — each is already a clean single-line string after the parser fix
-        for opt, text in mcq['options'].items():
-            pdf.multi_cell(w, 5, f"{opt}) {text}")
+        # ---- Options (each value is already a flat single-line string) ----
+        for opt in ["A", "B", "C", "D"]:
+            opt_text = mcq["options"].get(opt, "")
+            if opt_text:
+                # Indent option slightly
+                pdf.cell(5)
+                pdf.multi_cell(w - 5, 5, f"{opt}) {opt_text}", ln=True)
 
         pdf.ln(1)
-        pdf.multi_cell(w, 5, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}")
-        pdf.multi_cell(w, 5, f"Bloom Level: {mcq['bloom_level']}")
-        pdf.ln(3)
 
-    # Answers section
-    pdf.ln(3)
-    pdf.set_font("Helvetica", style="B", size=9)
-    pdf.cell(w, 5, "ANSWERS", ln=True)
+        # ---- Metadata ----
+        pdf.set_font("Helvetica", style="I", size=8)
+        pdf.multi_cell(w, 4, f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']}", ln=True)
+        pdf.multi_cell(w, 4, f"Bloom Level: {mcq['bloom_level']}", ln=True)
+        pdf.set_font("Helvetica", size=9)
+        pdf.ln(5)
+
+    # ---- Answers section ----
+    pdf.add_page()
+    pdf.set_font("Helvetica", style="B", size=10)
+    pdf.cell(w, 7, "ANSWER KEY", ln=True)
     pdf.set_font("Helvetica", size=9)
-    pdf.ln(1)
+    pdf.ln(2)
     for i, mcq in enumerate(mapped_questions, 1):
         pdf.cell(w, 5, f"Answer_{i}: {mcq['correct_answer']}", ln=True)
 
