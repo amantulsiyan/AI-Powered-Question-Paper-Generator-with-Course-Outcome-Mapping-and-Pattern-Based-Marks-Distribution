@@ -109,8 +109,9 @@ async def generate_mcqs(
                 return error("AI rate limit reached. Please wait a minute and try again.", 429)
             return error("Error generating MCQs. Please try again or reduce question count.", 500)
 
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        from datetime import datetime, timezone, timedelta
+        ist = timezone(timedelta(hours=5, minutes=30))
+        timestamp = datetime.now(ist).strftime("%Y%m%d_%H%M%S")
         safe_base = secure_filename(base_name)
         
         txt_name = f"{safe_base}_{timestamp}.txt"
