@@ -108,7 +108,7 @@ def _extract_option(block: str, opt: str, next_opt) -> str:
     m = re.search(pattern, block, re.DOTALL | re.IGNORECASE)
     if not m:
         return ""
-    return " ".join(m.group(1).split())          # flatten any newlines
+    return " ".join(m.group(1).split())   # flatten any newlines
 
 
 def parse_and_map_mcqs(raw_text: str, co_list: list) -> list:
@@ -137,9 +137,25 @@ def parse_and_map_mcqs(raw_text: str, co_list: list) -> list:
             if text:
                 options[opt] = text
 
-        # ---- Correct answer ----
-        c_match = re.search(r"Correct Answer:\s*([A-D])", block, re.IGNORECASE)
+        # ---- FIX 1: Skip if any option is missing ----
+        if len(options) < 4:
+            print(f"[SKIP] Incomplete options {list(options.keys())} in block: {question[:60]!r}")
+            continue
+
+        # ---- FIX 2: Broadened correct answer regex to handle edge cases ----
+        # Handles: "Correct Answer: A", "Correct Answer: (A)", "Correct Answer: A)"
+        # "Correct Answer: A or B", "Correct answer: a", etc.
+        c_match = re.search(
+            r"Correct Answer[:\s]*\(?([A-D])\)?",
+            block,
+            re.IGNORECASE
+        )
         correct = c_match.group(1).upper() if c_match else "Unknown"
+
+        # ---- FIX 3: Skip if correct answer could not be determined ----
+        if correct == "Unknown":
+            print(f"[SKIP] Could not parse correct answer in block: {question[:60]!r}")
+            continue
 
         parsed_blocks.append((block.strip(), question, options, correct))
 
@@ -184,8 +200,10 @@ STRICT RULES:
 - Do NOT generate purely theoretical/general questions.
 - Stick to the reference text context.
 - Start every MCQ with exactly '## MCQ' on its own line.
+- EVERY MCQ MUST have EXACTLY 4 options: A, B, C, and D. Never skip any option.
 - CRITICAL: EACH OPTION (A, B, C, D) MUST FIT ON A SINGLE LINE.
   Do NOT insert any line break or newline inside an option's text.
+- Correct Answer must be exactly one letter: A, B, C, or D. Nothing else.
 - Follow EXACTLY this format and nothing else:
 
 ## MCQ
@@ -194,7 +212,7 @@ A) <full option text on one single line, no newlines>
 B) <full option text on one single line, no newlines>
 C) <full option text on one single line, no newlines>
 D) <full option text on one single line, no newlines>
-Correct Answer: <A/B/C/D>
+Correct Answer: <A or B or C or D>
 
 REFERENCE TEXT:
 {context}
@@ -243,18 +261,20 @@ def generate_balanced_mcqs(text, co_list, total):
     all_raw = ""
 
     for i, co in enumerate(co_list):
-        count = base + (1 if i < extra else 0)
-        if count <= 0:
-            continue
-        print(f"Generating {count} MCQs for CO{i + 1}")
+        # FIX 4: Add 20% buffer per CO to compensate for skipped malformed MCQs
+        base_count = base + (1 if i < extra else 0)
+        count = max(1, round(base_count * 1.2))
+
+        print(f"Generating {count} MCQs for CO{i + 1} (target: {base_count}, +20% buffer)")
         out = generate_mcqs_for_co(text, co, count)
         all_raw += out + "\n\n"
         if i < len(co_list) - 1:
             time.sleep(5)
 
     parsed = parse_and_map_mcqs(all_raw, co_list)
-    print(f"First pass generated: {len(parsed)} MCQs")
+    print(f"First pass generated: {len(parsed)} valid MCQs")
 
+    # Retry loop to fill any remaining gap
     missing = total - len(parsed)
     cycles  = 0
     while missing > 0 and cycles < 3:
@@ -270,7 +290,7 @@ def generate_balanced_mcqs(text, co_list, total):
                 missing -= 1
 
     parsed = parsed[:total]
-    print("\nFinal MCQ Count:", len(parsed))
+    print(f"\nFinal MCQ Count: {len(parsed)}")
     return {
         "raw_text":         "\n\n".join(m["question_block"] for m in parsed),
         "mapped_questions": parsed,
@@ -327,7 +347,6 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
         for opt in ["A", "B", "C", "D"]:
             opt_text = mcq["options"].get(opt, "")
             if opt_text:
-                # Indent option slightly
                 pdf.cell(5)
                 pdf.multi_cell(w - 5, 5, f"{opt}) {opt_text}", ln=True)
 
@@ -340,7 +359,7 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
         pdf.set_font("Helvetica", size=9)
         pdf.ln(5)
 
-    # ---- Answers section ----
+    # ---- Answer key on a new page ----
     pdf.add_page()
     pdf.set_font("Helvetica", style="B", size=10)
     pdf.cell(w, 7, "ANSWER KEY", ln=True)
