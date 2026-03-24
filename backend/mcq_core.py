@@ -277,9 +277,10 @@ def save_mcqs_txt(mapped_questions, folder, fname):
 def save_mcqs_pdf(mapped_questions, folder, fname):
     os.makedirs(folder, exist_ok=True)
     pdf = FPDF()
-    pdf.add_page()
     pdf.set_left_margin(15)
     pdf.set_right_margin(15)
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
     pdf.set_font("Helvetica", size=9)
     
     for i, mcq in enumerate(mapped_questions, 1):
