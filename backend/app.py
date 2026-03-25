@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf
+from mcq_core import extract_text, generate_balanced_mcqs, save_mcqs_txt, save_mcqs_pdf, save_mcqs_docx
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
@@ -114,12 +114,14 @@ async def generate_mcqs(
         timestamp = datetime.now(ist).strftime("%Y%m%d_%H%M%S")
         safe_base = secure_filename(base_name)
         
-        txt_name = f"{safe_base}_{timestamp}.txt"
-        pdf_name = f"{safe_base}_{timestamp}.pdf"
+        txt_name  = f"{safe_base}_{timestamp}.txt"
+        pdf_name  = f"{safe_base}_{timestamp}.pdf"
         json_name = f"{safe_base}_{timestamp}.json"
+        docx_name = f"{safe_base}_{timestamp}.docx"
 
         save_mcqs_txt(mapped_mcqs, RESULTS_FOLDER, txt_name)
         save_mcqs_pdf(mapped_mcqs, RESULTS_FOLDER, pdf_name)
+        save_mcqs_docx(mapped_mcqs, RESULTS_FOLDER, docx_name)
         with open(os.path.join(RESULTS_FOLDER, json_name), "w", encoding="utf-8") as f:
             json.dump(mapped_mcqs, f, indent=4)
 
@@ -129,6 +131,7 @@ async def generate_mcqs(
             "txt_filename": txt_name,
             "pdf_filename": pdf_name,
             "json_filename": json_name,
+            "docx_filename": docx_name,
         })
 
     except Exception as e:

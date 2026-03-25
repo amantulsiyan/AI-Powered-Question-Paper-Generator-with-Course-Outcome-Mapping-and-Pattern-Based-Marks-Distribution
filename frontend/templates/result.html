@@ -129,14 +129,15 @@
         return "score-low";
     }
 
-    function renderMCQs(mcqsRaw, txtFilename, pdfFilename, jsonFilename) {
+    function renderMCQs(mcqsRaw, txtFilename, pdfFilename, jsonFilename, docxFilename) {
         // Download buttons
         const dlDiv = document.getElementById("downloadBtns");
-        dlDiv.innerHTML = `
+       dlDiv.innerHTML = `
             <a class="nice-btn" href="${BACKEND_URL}/download/${txtFilename}">Download .TXT</a>
             <a class="nice-btn" href="${BACKEND_URL}/download/${pdfFilename}">Download .PDF</a>
             <a class="nice-btn" href="${BACKEND_URL}/download/${jsonFilename}">Download CO JSON</a>
-        `;
+            <a class="nice-btn" href="${BACKEND_URL}/download/${docxFilename}">Download .DOCX</a>
+            `;
 
         // MCQ blocks
         const mcqBox = document.getElementById("mcqBox");
@@ -212,7 +213,7 @@
         window.location.href = "index.html";
     } else {
         const data = JSON.parse(raw);
-        renderMCQs(data.mcqs_raw, data.txt_filename, data.pdf_filename, data.json_filename);
+        renderMCQs(data.mcqs_raw, data.txt_filename, data.pdf_filename, data.json_filename, data.docx_filename);
         if (data.mapped_mcqs && data.mapped_mcqs.length > 0) {
             renderMapping(data.mapped_mcqs);
         }

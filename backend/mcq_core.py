@@ -371,3 +371,49 @@ def save_mcqs_pdf(mapped_questions, folder, fname):
     path = os.path.join(folder, fname)
     pdf.output(path)
     return path
+
+def save_mcqs_docx(mapped_questions, folder, fname):
+    os.makedirs(folder, exist_ok=True)
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+
+    # Title
+    title = doc.add_heading("AI-Generated MCQs", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    for i, mcq in enumerate(mapped_questions, 1):
+        # Question
+        q_para = doc.add_paragraph()
+        q_run = q_para.add_run(f"Q{i}. {mcq['question_text']}")
+        q_run.bold = True
+        q_run.font.size = Pt(11)
+
+        # Options
+        for opt in ["A", "B", "C", "D"]:
+            opt_text = mcq["options"].get(opt, "")
+            if opt_text:
+                doc.add_paragraph(f"{opt}) {opt_text}", style="List Bullet")
+
+        # Metadata
+        meta = doc.add_paragraph()
+        meta_run = meta.add_run(
+            f"Mapped CO: {mcq['mapped_co']} - {mcq['co_description']} | Bloom Level: {mcq['bloom_level']}"
+        )
+        meta_run.italic = True
+        meta_run.font.size = Pt(9)
+        meta_run.font.color.rgb = RGBColor(0x88, 0x88, 0x99)
+
+        doc.add_paragraph("─" * 60)
+
+    # Answer key
+    doc.add_page_break()
+    doc.add_heading("Answer Key", 1)
+    for i, mcq in enumerate(mapped_questions, 1):
+        doc.add_paragraph(f"Answer_{i}: {mcq['correct_answer']}")
+
+    path = os.path.join(folder, fname)
+    doc.save(path)
+    return path
