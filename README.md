@@ -24,7 +24,7 @@ This project was developed as a learning-oriented implementation to apply concep
 
 ### Backend
 - Python  
-- Flask  
+- Fast Api  
 - Google Gemini API (for MCQ generation)  
 - Sentence Transformers (semantic similarity)  
 - PDFPlumber, python-docx (document parsing)  
