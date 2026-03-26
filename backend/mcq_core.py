@@ -199,6 +199,10 @@ STRICT RULES:
 - Questions must clearly reflect the CO's terminology.
 - Do NOT generate purely theoretical/general questions.
 - Stick to the reference text context.
+
+- DO NOT refer to "given code", "above code", or "following code" unless code is explicitly present in the reference text.
+- Questions must be fully self-contained and understandable independently.
+
 - Start every MCQ with exactly '## MCQ' on its own line.
 - EVERY MCQ MUST have EXACTLY 4 options: A, B, C, and D. Never skip any option.
 - CRITICAL: EACH OPTION (A, B, C, D) MUST FIT ON A SINGLE LINE.
