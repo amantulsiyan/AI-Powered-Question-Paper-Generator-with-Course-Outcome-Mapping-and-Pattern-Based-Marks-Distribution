@@ -16,8 +16,8 @@ This project was developed as a learning-oriented implementation to apply concep
 - Generate a fixed number of MCQs distributed evenly across all Course Outcomes  
 - Automatic Course Outcome mapping using keyword-based Jaccard similarity  
 - Bloom's Taxonomy level detection for each question  
-- Download generated MCQs in TXT, PDF, and JSON formats  
-- Filenames formatted as `{topic_name}_{YYYYMMDD}`
+- Download generated MCQs in **TXT, PDF, DOCX, and JSON** formats  
+- Filenames formatted as `{topic_name}_{YYYYMMDD_HHMMSS}`
 - Answers displayed separately at the end in all outputs
 - Simple and interactive web interface with loading animation  
 - Dual deployment architecture (FastAPI backend + static frontend)
@@ -31,7 +31,7 @@ This project was developed as a learning-oriented implementation to apply concep
 - FastAPI  
 - Groq API with Llama 3.3 70B (for MCQ generation)  
 - Keyword-based Jaccard similarity (for CO mapping)  
-- PDFPlumber, python-docx (document parsing)  
+- PDFPlumber, python-docx (document parsing and DOCX generation)  
 - BeautifulSoup4 (URL scraping)  
 - FPDF2 (PDF generation)  
 
@@ -71,12 +71,13 @@ AI MCQ/
 ## System Workflow
 1. The user provides a document or a website URL along with Course Outcomes, optional topic name, and the required number of MCQs.
 2. The system extracts readable text from the input source.
-3. MCQs are generated separately for each Course Outcome using the Groq API (Llama 3.3 70B).
+3. MCQs are generated separately for each Course Outcome using the Groq API (Llama 3.3 70B) with a 20% buffer to compensate for malformed questions.
 4. A balanced generation algorithm ensures equal distribution of questions across all COs.
-5. Generated questions are parsed and mapped back to COs using keyword-based Jaccard similarity.
-6. Bloom's Taxonomy level is detected using a hybrid keyword-based approach.
-7. Final outputs are saved as TXT, PDF, and JSON files with format `{topic_name}_{YYYYMMDD}` and made available for download.
-8. Results are displayed on the web interface with answers shown separately at the end.
+5. Generated questions are parsed and validated (must have exactly 4 options and a valid correct answer).
+6. Questions are mapped back to COs using keyword-based Jaccard similarity.
+7. Bloom's Taxonomy level is detected using keyword-based rules.
+8. Final outputs are saved as **TXT, PDF, DOCX, and JSON** files with format `{topic_name}_{YYYYMMDD_HHMMSS}` and made available for download.
+9. Results are displayed on the web interface with answers shown separately at the end.
 
 ---
 
@@ -116,7 +117,36 @@ The system primarily focuses on **Apply**, **Analyze**, and **Evaluate** levels 
 - Enter Course Outcomes (one per line) and the number of MCQs
 - Click **Generate MCQs**
 - View results with answers displayed separately at the end
-- Download files in TXT, PDF, or JSON format (named as `{topic_name}_{date}`)
+- Download files in **TXT, PDF, DOCX, or JSON** format (named as `{topic_name}_{timestamp}`)
+
+---
+
+## Output Formats
+
+### TXT Format
+- Questions with options (A, B, C, D)
+- Mapped CO and Bloom level for each question
+- Separate answer key at the end in format: `Answer_1: A`
+
+### PDF Format
+- Professionally formatted questions with proper spacing
+- Options with indentation
+- Metadata (CO mapping, Bloom level) in italics
+- Answer key on a separate page
+
+### DOCX Format
+- Formatted questions with bold text
+- Bulleted options
+- Metadata in italics with color coding
+- Answer key on a separate page
+
+### JSON Format
+- Complete structured data including:
+  - Question text and options
+  - Correct answer
+  - Mapped CO with description
+  - Similarity score
+  - Bloom taxonomy level
 
 ---
 
@@ -129,6 +159,7 @@ Through this project, the following concepts were practically applied:
 - Full-stack development using FastAPI and static HTML/JavaScript  
 - Dual deployment architecture (Render + Netlify)  
 - Memory-optimized implementation for free-tier hosting
+- Robust MCQ parsing with validation and error handling
 
 ---
 
@@ -138,15 +169,19 @@ Through this project, the following concepts were practically applied:
 - Quality depends on the input content and AI responses  
 - Free tier rate limits apply (Groq: 30 requests/minute)  
 - Optimized for free-tier deployment (512MB RAM on Render)
+- 20% buffer generation may result in slightly more API calls
 
 ---
 
 ## Future Improvements
+- User-provided API key support to reduce hosting costs
 - Support for Google Drive or cloud-based document links  
 - Improved CO mapping using fine-tuned embeddings  
 - Admin dashboard for educators  
 - Difficulty-level filtering and question quality scoring  
-- Support for different question types (True/False, Short Answer)  
+- Support for different question types (True/False, Short Answer, Fill-in-the-blank)  
 - Batch processing for multiple documents
+- Question bank management system
+- Export to additional formats (Excel, LaTeX)
 
 ---
