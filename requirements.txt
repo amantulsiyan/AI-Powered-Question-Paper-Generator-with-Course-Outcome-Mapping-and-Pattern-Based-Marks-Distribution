@@ -8,3 +8,8 @@ pdfplumber==0.11.2
 python-docx==1.1.0
 fpdf2==2.7.5
 werkzeug==3.0.3
+aiohttp==3.9.5
+aiofiles==23.2.1
+pydantic==2.7.1
+pydantic-settings==2.2.1
+tenacity==8.3.0
