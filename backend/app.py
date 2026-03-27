@@ -291,7 +291,7 @@ async def generate_mcqs(
         else:
             # Generate MCQs
             try:
-                result = generate_balanced_mcqs(text, co_entries, validated.total_questions)
+                result = await generate_balanced_mcqs(text, co_entries, validated.total_questions)
                 mapped_mcqs = result.get("mapped_questions", [])
                 
                 # Cache result

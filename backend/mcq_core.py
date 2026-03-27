@@ -366,7 +366,7 @@ async def generate_all_mcqs_parallel(
 #              BALANCED MCQ GENERATION (Main Entry Point)
 # ===================================================================
 
-def generate_balanced_mcqs(text: str, co_list: List[str], total: int) -> Dict:
+async def generate_balanced_mcqs(text: str, co_list: List[str], total: int) -> Dict:
     """
     Generate balanced MCQs across all COs with exact count
     Uses parallel API calls for performance
@@ -383,7 +383,7 @@ def generate_balanced_mcqs(text: str, co_list: List[str], total: int) -> Dict:
     logger.info(f"Generating {total} MCQs across {n} COs: {questions_per_co}")
     
     # Generate MCQs in parallel (async)
-    all_raw = asyncio.run(generate_all_mcqs_parallel(text, co_list, questions_per_co))
+    all_raw = await generate_all_mcqs_parallel(text, co_list, questions_per_co)
     
     # Parse MCQs
     parsed_blocks = parse_mcqs(all_raw)
@@ -418,37 +418,31 @@ def generate_balanced_mcqs(text: str, co_list: List[str], total: int) -> Dict:
         retry_cycles += 1
         logger.info(f"Retry cycle {retry_cycles}: Missing {missing} MCQs")
         
-        for co in co_list:
-            if missing <= 0:
-                break
-            
-            # Generate 1 MCQ synchronously for retry
-            retry_raw = asyncio.run(
-                generate_mcqs_for_co_async(
-                    aiohttp.ClientSession(),
-                    text,
-                    co,
-                    1
-                )
-            )
-            
-            retry_parsed = parse_mcqs(retry_raw)
-            if retry_parsed:
-                block, question, options, correct = retry_parsed[0]
-                co_id, co_desc, similarity = map_question_to_co(question, co_keyword_sets, co_list)
-                bloom = detect_bloom_level(question)
+        async with aiohttp.ClientSession() as session:
+            for co in co_list:
+                if missing <= 0:
+                    break
                 
-                mapped_questions.append({
-                    "question_block": block,
-                    "question_text": question,
-                    "options": options,
-                    "correct_answer": correct,
-                    "mapped_co": co_id,
-                    "co_description": co_desc,
-                    "similarity_score": similarity,
-                    "bloom_level": bloom,
-                })
-                missing -= 1
+                # Generate 1 MCQ asynchronously for retry
+                retry_raw = await generate_mcqs_for_co_async(session, text, co, 1)
+                
+                retry_parsed = parse_mcqs(retry_raw)
+                if retry_parsed:
+                    block, question, options, correct = retry_parsed[0]
+                    co_id, co_desc, similarity = map_question_to_co(question, co_keyword_sets, co_list)
+                    bloom = detect_bloom_level(question)
+                    
+                    mapped_questions.append({
+                        "question_block": block,
+                        "question_text": question,
+                        "options": options,
+                        "correct_answer": correct,
+                        "mapped_co": co_id,
+                        "co_description": co_desc,
+                        "similarity_score": similarity,
+                        "bloom_level": bloom,
+                    })
+                    missing -= 1
     
     # Trim to exact count
     mapped_questions = mapped_questions[:total]
